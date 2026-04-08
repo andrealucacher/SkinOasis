@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BloomSkin — Eczema & Skin Health Community</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --terra:#C1602A;--terra-light:#E8916A;--terra-pale:#F5E0D3;--terra-dark:#8B3A10;
+  --sand:#F2EAD8;--sand-dark:#D9C9A8;--sand-mid:#E8DCC8;
+  --sage:#5C7A4E;--sage-light:#8AB07A;--sage-pale:#DCF0D0;--sage-dark:#3A5430;
+  --cream:#FBF5EC;--brown:#4A2E14;--brown-mid:#7A4E28;--brown-light:#A07850;
+  --text:#2E1A0E;--text-mid:#6B4A2A;--text-muted:#A07850;
+  --white:#FFFFFF;--danger:#C0392B;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--brown);position:relative;overflow:hidden;
+}
+#auth-screen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 30% 40%, rgba(193,96,42,0.35) 0%, transparent 60%),
+             radial-gradient(ellipse at 80% 70%, rgba(92,122,78,0.25) 0%, transparent 50%);
+}
+.auth-card{
+  position:relative;z-index:1;background:var(--cream);border-radius:20px;
+  padding:2.5rem 2rem;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.3);
+}
+.auth-logo{font-family:'Lora',serif;font-size:32px;color:var(--terra);text-align:center;margin-bottom:4px;}
+.auth-logo span{color:var(--sage);}
+.auth-tagline{text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:2rem;}
+.auth-tabs{display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--sand-dark);border-radius:10px;overflow:hidden;}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:13px;cursor:pointer;background:var(--sand);color:var(--text-muted);transition:all 0.15s;}
+.auth-tab.active{background:var(--terra);color:white;}
+.form-group{margin-bottom:1rem;}
+.form-group label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;letter-spacing:0.3px;}
+.form-group input{
+  width:100%;padding:10px 12px;border:1px solid var(--sand-dark);border-radius:8px;
+  font-size:14px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);
+  transition:border-color 0.15s;
+}
+.form-group input:focus{outline:none;border-color:var(--terra);}
+.auth-btn{
+  width:100%;padding:11px;background:var(--terra);color:white;border:none;
+  border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;
+  transition:background 0.15s;margin-top:0.5rem;
+}
+.auth-btn:hover{background:var(--terra-dark);}
+.auth-msg{font-size:12px;text-align:center;margin-top:0.75rem;min-height:18px;}
+.auth-msg.error{color:var(--danger);}
+.auth-msg.success{color:var(--sage);}
+
+/* ── APP SHELL ── */
+#app{display:none;flex-direction:column;min-height:100vh;}
+
+/* NAV */
+nav{
+  background:var(--brown);padding:0 2rem;
+  display:flex;align-items:center;justify-content:space-between;height:58px;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-family:'Lora',serif;font-size:22px;color:var(--terra-pale);}
+.logo span{color:var(--sage-light);}
+.nav-right{display:flex;align-items:center;gap:1rem;}
+.nav-user{font-size:13px;color:var(--sand);opacity:0.8;}
+.nav-signout{
+  background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--sand);
+  padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all 0.15s;
+}
+.nav-signout:hover{background:rgba(255,255,255,0.1);}
+
+/* TABS */
+.tabs{
+  display:flex;background:var(--sand);border-bottom:1px solid var(--sand-dark);
+  padding:0 2rem;gap:0;overflow-x:auto;
+}
+.tab{
+  padding:13px 18px;font-size:13px;color:var(--text-muted);cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;
+}
+.tab.active{color:var(--terra);border-bottom-color:var(--terra);font-weight:500;}
+.tab:hover:not(.active){color:var(--brown-mid);}
+
+/* CONTENT */
+.content{flex:1;padding:1.75rem 2rem 3rem;max-width:1100px;margin:0 auto;width:100%;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* SECTION HEADER */
+.sec-header{margin-bottom:1.5rem;}
+.sec-header h2{font-family:'Lora',serif;font-size:26px;color:var(--brown);margin-bottom:4px;}
+.sec-header p{font-size:13px;color:var(--text-muted);}
+
+/* CARDS */
+.card{background:white;border-radius:14px;border:1px solid var(--sand-dark);padding:16px;}
+.card h3{font-family:'Lora',serif;font-size:17px;color:var(--brown);margin-bottom:12px;}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+
+/* BUTTONS */
+.btn-primary{
+  background:var(--terra);color:white;border:none;padding:9px 18px;
+  border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;
+  transition:background 0.15s;
+}
+.btn-primary:hover{background:var(--terra-dark);}
+.btn-secondary{
+  background:var(--sand);color:var(--brown-mid);border:1px solid var(--sand-dark);
+  padding:8px 16px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;
+  cursor:pointer;transition:all 0.15s;
+}
+.btn-secondary:hover{background:var(--sand-dark);}
+.btn-ghost{
+  background:transparent;color:var(--text-muted);border:1.5px dashed var(--sand-dark);
+  padding:8px 16px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;
+  cursor:pointer;width:100%;margin-top:8px;transition:all 0.15s;
+}
+.btn-ghost:hover{border-color:var(--terra-light);color:var(--terra);}
+
+/* FORM ELEMENTS */
+.input, select, textarea{
+  width:100%;padding:9px 12px;border:1px solid var(--sand-dark);border-radius:8px;
+  font-size:13px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);
+  transition:border-color 0.15s;
+}
+.input:focus, select:focus, textarea:focus{outline:none;border-color:var(--terra);}
+textarea{resize:vertical;min-height:80px;}
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.3px;text-transform:uppercase;}
+
+/* EMOJI BUTTONS */
+.emoji-row{display:flex;gap:5px;flex-wrap:wrap;}
+.e-btn{
+  padding:5px 10px;border-radius:20px;border:1px solid var(--sand-dark);
+  background:white;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;
+  color:var(--text-muted);transition:all 0.15s;
+}
+.e-btn.sel{background:var(--terra-pale);border-color:var(--terra);color:var(--terra);font-weight:500;}
+
+/* BADGES */
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;}
+.badge-terra{background:var(--terra-pale);color:var(--terra);}
+.badge-sage{background:var(--sage-pale);color:var(--sage-dark);}
+.badge-sand{background:var(--sand);color:var(--brown-light);}
+.badge-blue{background:#E8EAF6;color:#3949AB;}
+.badge-pink{background:#FCE4EC;color:#C2185B;}
+
+/* MEAL CARDS */
+.meal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.meal-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:14px;}
+.meal-card .meal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.meal-card .meal-type{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);}
+.meal-card .meal-time{font-size:11px;color:var(--sand-dark);}
+.meal-card .meal-foods{font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.5;}
+.meal-badges{display:flex;gap:5px;flex-wrap:wrap;}
+
+/* DAY STRIP */
+.day-strip{display:flex;gap:7px;margin-bottom:1.25rem;overflow-x:auto;padding-bottom:4px;}
+.day-pill{min-width:48px;text-align:center;padding:8px 6px;border-radius:10px;background:white;border:1px solid var(--sand-dark);cursor:pointer;transition:all 0.15s;}
+.day-pill .dn{font-size:10px;color:var(--text-muted);}
+.day-pill .dd{font-size:16px;font-weight:500;color:var(--brown);}
+.day-pill.today,.day-pill.sel{background:var(--terra);border-color:var(--terra);}
+.day-pill.today .dn,.day-pill.today .dd,.day-pill.sel .dn,.day-pill.sel .dd{color:white;}
+
+/* PROGRESS BARS */
+.bar-wrap{margin-bottom:10px;}
+.bar-wrap label{font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;margin-bottom:4px;}
+.bar-track{height:8px;background:var(--sand-dark);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.3s;}
+
+/* PRODUCT LIST */
+.prod-list{list-style:none;}
+.prod-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--sand-dark);font-size:13px;}
+.prod-item:last-child{border-bottom:none;}
+.prod-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.prod-name{flex:1;color:var(--text);}
+.prod-freq{font-size:11px;color:var(--text-muted);}
+.prod-del{background:none;border:none;color:var(--sand-dark);cursor:pointer;font-size:16px;padding:0 4px;}
+.prod-del:hover{color:var(--danger);}
+
+/* FORUM */
+.forum-layout{display:grid;grid-template-columns:1fr 260px;gap:1.25rem;}
+.thread-list{display:flex;flex-direction:column;gap:10px;}
+.thread-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:14px;cursor:pointer;transition:border-color 0.15s;}
+.thread-card:hover{border-color:var(--terra-light);}
+.thread-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.thread-author{font-size:13px;color:var(--brown);font-weight:500;}
+.thread-time{font-size:11px;color:var(--text-muted);}
+.thread-card h4{font-size:14px;color:var(--text);margin-bottom:6px;line-height:1.4;}
+.thread-card p{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;}
+.thread-footer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.thread-stat{font-size:11px;color:var(--text-muted);margin-left:auto;}
+
+/* REPLY */
+.replies-section{margin-top:12px;border-top:1px solid var(--sand-dark);padding-top:12px;display:none;}
+.reply-item{display:flex;gap:10px;margin-bottom:10px;}
+.reply-body{flex:1;background:var(--sand);border-radius:10px;padding:10px 12px;font-size:13px;}
+.reply-meta{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
+.reply-text{color:var(--text);line-height:1.5;}
+.reply-form{display:flex;gap:8px;margin-top:8px;}
+.reply-form textarea{flex:1;min-height:50px;font-size:13px;}
+
+/* SIDEBAR */
+.sidebar-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:14px;margin-bottom:1rem;}
+.sidebar-card h4{font-size:13px;color:var(--brown);font-weight:500;margin-bottom:10px;}
+.topic-list{list-style:none;}
+.topic-list li{font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--sand-dark);cursor:pointer;}
+.topic-list li:last-child{border-bottom:none;}
+.topic-list li:hover{color:var(--terra);}
+.topic-count{font-size:10px;background:var(--sand);padding:2px 7px;border-radius:20px;}
+
+/* RESOURCES */
+.res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.res-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:14px;}
+.res-card h4{font-size:14px;color:var(--brown);margin-bottom:6px;margin-top:6px;font-family:'Lora',serif;}
+.res-card p{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;}
+.res-source{font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:4px;}
+.eczema-dot{width:6px;height:6px;border-radius:50%;background:var(--sage);display:inline-block;}
+.filter-row{display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.filter-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--sand-dark);background:white;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
+.filter-chip.active{background:var(--terra);border-color:var(--terra);color:white;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--cream);border-radius:16px;padding:1.75rem;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-family:'Lora',serif;font-size:20px;color:var(--brown);margin-bottom:1.25rem;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);}
+
+/* LOADING */
+.loading{text-align:center;padding:2rem;color:var(--text-muted);font-size:14px;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text-muted);}
+.empty .empty-icon{font-size:36px;margin-bottom:8px;}
+.empty p{font-size:14px;line-height:1.6;}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:2rem;right:2rem;background:var(--brown);color:white;
+  padding:10px 18px;border-radius:10px;font-size:13px;z-index:999;
+  transform:translateY(80px);opacity:0;transition:all 0.3s;pointer-events:none;
+}
+#toast.show{transform:translateY(0);opacity:1;}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+  .grid-2,.meal-grid,.res-grid,.forum-layout{grid-template-columns:1fr;}
+  .content{padding:1rem;}
+  nav{padding:0 1rem;}
+  .tabs{padding:0 1rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Bloom<span>Skin</span></div>
+    <div class="auth-tagline">Your eczema & skin health companion</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuth('login')">Sign in</div>
+      <div class="auth-tab" onclick="switchAuth('signup')">Create account</div>
+    </div>
+    <div id="login-form">
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
+      <button class="auth-btn" onclick="doLogin()">Sign in</button>
+    </div>
+    <div id="signup-form" style="display:none;">
+      <div class="form-group"><label>Username</label><input type="text" id="signup-name" placeholder="e.g. SkinWarrior2024"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="signup-pass" placeholder="at least 6 characters"/></div>
+      <button class="auth-btn" onclick="doSignup()">Create account</button>
+    </div>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav>
+    <div class="logo">Bloom<span>Skin</span></div>
+    <div class="nav-right">
+      <span class="nav-user" id="nav-username"></span>
+      <button class="nav-signout" onclick="doSignout()">Sign out</button>
+    </div>
+  </nav>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(0)">🥗 Diet & Symptoms</div>
+    <div class="tab" onclick="showTab(1)">🌿 Skin Progress</div>
+    <div class="tab" onclick="showTab(2)">📋 Resources</div>
+    <div class="tab" onclick="showTab(3)">💬 Community</div>
+  </div>
+  <div class="content">
+
+    <!-- ── SECTION 1: DIET ── -->
+    <div class="section active" id="s0">
+      <div class="sec-header">
+        <h2>Diet & Symptom Journal</h2>
+        <p>Track what you eat and how your body responds — find your personal patterns over time.</p>
+      </div>
+      <div class="day-strip" id="day-strip"></div>
+      <div class="meal-grid" id="meal-list">
+        <div class="loading">Loading meals…</div>
+      </div>
+      <button class="btn-primary" onclick="openModal('meal-modal')">+ Log a meal</button>
+
+      <div class="card" style="margin-top:1rem;">
+        <h3>Today's overall check-in</h3>
+        <div class="grid-2" style="gap:1rem;">
+          <div>
+            <div class="field"><label>Mood</label>
+              <div class="emoji-row" id="mood-row">
+                <button class="e-btn" data-val="😔 Low" onclick="pickEmoji(this,'mood')">😔 Low</button>
+                <button class="e-btn" data-val="😐 Okay" onclick="pickEmoji(this,'mood')">😐 Okay</button>
+                <button class="e-btn" data-val="😊 Good" onclick="pickEmoji(this,'mood')">😊 Good</button>
+              </div>
+            </div>
+            <div class="field"><label>Itchiness</label>
+              <div class="emoji-row">
+                <button class="e-btn" data-val="Low" onclick="pickEmoji(this,'itch')">🟢 Low</button>
+                <button class="e-btn" data-val="Medium" onclick="pickEmoji(this,'itch')">🟡 Medium</button>
+                <button class="e-btn" data-val="High" onclick="pickEmoji(this,'itch')">🔴 High</button>
+              </div>
+            </div>
+            <div class="field"><label>Inflammation</label>
+              <div class="emoji-row">
+                <button class="e-btn" data-val="Low" onclick="pickEmoji(this,'inflam')">🟢 Low</button>
+                <button class="e-btn" data-val="Medium" onclick="pickEmoji(this,'inflam')">🟡 Medium</button>
+                <button class="e-btn" data-val="High" onclick="pickEmoji(this,'inflam')">🔴 High</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="field"><label>Stomach</label>
+              <div class="emoji-row">
+                <button class="e-btn" data-val="Fine" onclick="pickEmoji(this,'stomach')">😊 Fine</button>
+                <button class="e-btn" data-val="Uneasy" onclick="pickEmoji(this,'stomach')">😐 Uneasy</button>
+                <button class="e-btn" data-val="Pain" onclick="pickEmoji(this,'stomach')">😖 Pain</button>
+              </div>
+            </div>
+            <div class="field"><label>Digestion</label>
+              <div class="emoji-row">
+                <button class="e-btn" data-val="Good" onclick="pickEmoji(this,'digest')">🟢 Good</button>
+                <button class="e-btn" data-val="Okay" onclick="pickEmoji(this,'digest')">🟡 Okay</button>
+                <button class="e-btn" data-val="Poor" onclick="pickEmoji(this,'digest')">🔴 Poor</button>
+              </div>
+            </div>
+            <div class="field"><label>Bowel (Bristol scale 1–7)</label>
+              <div class="emoji-row">
+                <button class="e-btn" data-val="1-2 Hard" onclick="pickEmoji(this,'bowel')">1-2 Hard</button>
+                <button class="e-btn" data-val="3-4 Normal" onclick="pickEmoji(this,'bowel')">3-4 Normal</button>
+                <button class="e-btn" data-val="5-7 Loose" onclick="pickEmoji(this,'bowel')">5-7 Loose</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:1rem;text-align:right;">
+          <button class="btn-primary" onclick="saveCheckin()">Save today's check-in</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2: SKIN ── -->
+    <div class="section" id="s1">
+      <div class="sec-header">
+        <h2>Skin Progress Tracker</h2>
+        <p>Monitor flare-ups, affected areas, and the products that are helping.</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Log today's skin status</h3>
+          <div class="field"><label>Itchiness (0–10)</label>
+            <input type="range" min="0" max="10" value="3" id="itch-val" oninput="document.getElementById('itch-out').textContent=this.value" class="input" style="padding:0;border:none;"/>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);"><span>None</span><span id="itch-out">3</span><span>Severe</span></div>
+          </div>
+          <div class="field"><label>Redness / Inflammation (0–10)</label>
+            <input type="range" min="0" max="10" value="4" id="red-val" oninput="document.getElementById('red-out').textContent=this.value" class="input" style="padding:0;border:none;"/>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);"><span>None</span><span id="red-out">4</span><span>Severe</span></div>
+          </div>
+          <div class="field"><label>Dryness (0–10)</label>
+            <input type="range" min="0" max="10" value="5" id="dry-val" oninput="document.getElementById('dry-out').textContent=this.value" class="input" style="padding:0;border:none;"/>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);"><span>None</span><span id="dry-out">5</span><span>Severe</span></div>
+          </div>
+          <div class="field"><label>Notes (optional)</label><textarea id="skin-notes" placeholder="Any flare-ups, new areas, triggers noticed…"></textarea></div>
+          <button class="btn-primary" onclick="saveSkinEntry()" style="width:100%;margin-top:4px;">Save skin entry</button>
+        </div>
+
+        <div class="card">
+          <h3>My skincare routine</h3>
+          <ul class="prod-list" id="prod-list"><div class="loading">Loading…</div></ul>
+          <button class="btn-ghost" onclick="openModal('prod-modal')">+ Add product to routine</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem;">
+        <h3>Recent skin log</h3>
+        <div id="skin-history"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 3: RESOURCES ── -->
+    <div class="section" id="s2">
+      <div class="sec-header">
+        <h2>Eczema Association Resources</h2>
+        <p>Dermatologist-endorsed products and guidance from the National Eczema Association.</p>
+      </div>
+      <div class="filter-row" id="res-filters">
+        <div class="filter-chip active" onclick="filterRes(this,'all')">All</div>
+        <div class="filter-chip" onclick="filterRes(this,'skin')">Skincare</div>
+        <div class="filter-chip" onclick="filterRes(this,'makeup')">Makeup</div>
+        <div class="filter-chip" onclick="filterRes(this,'clothing')">Clothing & Fabrics</div>
+        <div class="filter-chip" onclick="filterRes(this,'diet')">Diet & Supplements</div>
+        <div class="filter-chip" onclick="filterRes(this,'household')">Household</div>
+      </div>
+      <div class="res-grid" id="res-grid"></div>
+    </div>
+
+    <!-- ── SECTION 4: FORUM ── -->
+    <div class="section" id="s3">
+      <div class="sec-header">
+        <h2>Community Forum</h2>
+        <p>You are not alone — connect with others who understand exactly what you're going through.</p>
+      </div>
+      <div class="forum-layout">
+        <div>
+          <button class="btn-primary" style="margin-bottom:1rem;width:100%;" onclick="openModal('post-modal')">+ Start a new thread</button>
+          <div class="thread-list" id="thread-list"><div class="loading">Loading…</div></div>
+        </div>
+        <div>
+          <div class="sidebar-card">
+            <h4>Browse topics</h4>
+            <ul class="topic-list" id="topic-list">
+              <li onclick="filterPosts('Skincare')">Skincare routines <span class="topic-count">—</span></li>
+              <li onclick="filterPosts('Diet')">Diet & food triggers <span class="topic-count">—</span></li>
+              <li onclick="filterPosts('Mental health')">Mental health <span class="topic-count">—</span></li>
+              <li onclick="filterPosts('Children')">Children & family <span class="topic-count">—</span></li>
+              <li onclick="filterPosts('Treatments')">Medications & treatments <span class="topic-count">—</span></li>
+              <li onclick="filterPosts('Success')">Success stories <span class="topic-count">—</span></li>
+              <li onclick="filterPosts(null)">Show all <span class="topic-count">all</span></li>
+            </ul>
+          </div>
+          <div class="sidebar-card" style="background:var(--terra-pale);border-color:var(--terra-light);">
+            <h4 style="color:var(--terra);">You are not alone.</h4>
+            <p style="font-size:12px;color:var(--brown-mid);line-height:1.6;margin-top:4px;">Over 31 million people in the US live with eczema. This community exists so none of them have to figure it out by themselves.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="meal-modal">
+  <div class="modal">
+    <h3>Log a meal</h3>
+    <div class="field"><label>Meal type</label>
+      <select id="m-type"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select>
+    </div>
+    <div class="field"><label>What did you eat?</label><textarea id="m-foods" placeholder="e.g. Oat porridge, blueberries, almond milk…"></textarea></div>
+    <div class="field"><label>Mood after</label>
+      <div class="emoji-row">
+        <button class="e-btn" onclick="pickEmoji(this,'m-mood')">😔 Low</button>
+        <button class="e-btn" onclick="pickEmoji(this,'m-mood')">😐 Okay</button>
+        <button class="e-btn" onclick="pickEmoji(this,'m-mood')">😊 Good</button>
+      </div>
+    </div>
+    <div class="field"><label>Itchiness after</label>
+      <div class="emoji-row">
+        <button class="e-btn" onclick="pickEmoji(this,'m-itch')">🟢 Low</button>
+        <button class="e-btn" onclick="pickEmoji(this,'m-itch')">🟡 Medium</button>
+        <button class="e-btn" onclick="pickEmoji(this,'m-itch')">🔴 High</button>
+      </div>
+    </div>
+    <div class="field"><label>Stomach</label>
+      <div class="emoji-row">
+        <button class="e-btn" onclick="pickEmoji(this,'m-stomach')">😊 Fine</button>
+        <button class="e-btn" onclick="pickEmoji(this,'m-stomach')">😐 Uneasy</button>
+        <button class="e-btn" onclick="pickEmoji(this,'m-stomach')">😖 Pain</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('meal-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveMeal()">Save meal</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="prod-modal">
+  <div class="modal">
+    <h3>Add product to routine</h3>
+    <div class="field"><label>Product name</label><input class="input" id="p-name" placeholder="e.g. CeraVe Moisturising Cream"/></div>
+    <div class="field"><label>How often?</label>
+      <select id="p-freq"><option>Morning</option><option>Evening</option><option>2x/day</option><option>As needed</option><option>Weekly</option></select>
+    </div>
+    <div class="field"><label>Your rating</label>
+      <div class="emoji-row">
+        <button class="e-btn" onclick="pickEmoji(this,'p-rating')" data-val="1">★ 1</button>
+        <button class="e-btn" onclick="pickEmoji(this,'p-rating')" data-val="2">★★ 2</button>
+        <button class="e-btn" onclick="pickEmoji(this,'p-rating')" data-val="3">★★★ 3</button>
+        <button class="e-btn" onclick="pickEmoji(this,'p-rating')" data-val="4">★★★★ 4</button>
+        <button class="e-btn" onclick="pickEmoji(this,'p-rating')" data-val="5">★★★★★ 5</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('prod-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveProduct()">Add product</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="post-modal">
+  <div class="modal">
+    <h3>Start a new thread</h3>
+    <div class="field"><label>Topic</label>
+      <select id="post-topic">
+        <option>Skincare</option><option>Diet</option><option>Mental health</option>
+        <option>Children</option><option>Treatments</option><option>Success</option><option>General</option>
+      </select>
+    </div>
+    <div class="field"><label>Title</label><input class="input" id="post-title" placeholder="What's on your mind?"/></div>
+    <div class="field"><label>Your message</label><textarea id="post-body" style="min-height:120px;" placeholder="Share your experience, question, or story…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('post-modal')">Cancel</button>
+      <button class="btn-primary" onclick="savePost()">Post to community</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://tregladzmrshhwdeiatr.supabase.co';
+const SUPA_KEY = 'sb_publishable_Ps2WyfdfwXCqeFd8QxLlFA_sjrSkEl6';
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+let currentUsername = '';
+let selectedDate = new Date().toISOString().split('T')[0];
+let emojiSelections = {};
+let allPosts = [];
+
+// ── AUTH ──
+async function init() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) { currentUser = session.user; await afterLogin(); }
+}
+
+function switchAuth(mode) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (mode==='login'&&i===0)||(mode==='signup'&&i===1)));
+  document.getElementById('login-form').style.display = mode==='login'?'block':'none';
+  document.getElementById('signup-form').style.display = mode==='signup'?'block':'none';
+  document.getElementById('auth-msg').textContent='';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  setAuthMsg('Signing in…','');
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+  if (error) { setAuthMsg(error.message,'error'); return; }
+  currentUser = data.user;
+  await afterLogin();
+}
+
+async function doSignup() {
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass = document.getElementById('signup-pass').value;
+  if (!name) { setAuthMsg('Please enter a username.','error'); return; }
+  setAuthMsg('Creating account…','');
+  const { data, error } = await db.auth.signUp({ email, password: pass });
+  if (error) { setAuthMsg(error.message,'error'); return; }
+  currentUser = data.user;
+  await db.from('profiles').upsert({ id: currentUser.id, username: name });
+  currentUsername = name;
+  await afterLogin();
+}
+
+async function afterLogin() {
+  if (!currentUsername) {
+    const { data } = await db.from('profiles').select('username').eq('id', currentUser.id).single();
+    currentUsername = data?.username || currentUser.email.split('@')[0];
+  }
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('nav-username').textContent = currentUsername;
+  buildDayStrip();
+  loadMeals();
+  loadProducts();
+  loadSkinHistory();
+  renderResources('all');
+  loadPosts();
+}
+
+async function doSignout() {
+  await db.auth.signOut();
+  location.reload();
+}
+
+function setAuthMsg(msg, type) {
+  const el = document.getElementById('auth-msg');
+  el.textContent = msg;
+  el.className = 'auth-msg' + (type ? ' '+type : '');
+}
+
+// ── TABS ──
+function showTab(i) {
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.section').forEach((s,j)=>s.classList.toggle('active',j===i));
+}
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+// ── EMOJI PICKER ──
+function pickEmoji(btn, group) {
+  btn.closest('.emoji-row').querySelectorAll('.e-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  emojiSelections[group] = btn.dataset.val || btn.textContent.trim();
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── DAY STRIP ──
+function buildDayStrip() {
+  const strip = document.getElementById('day-strip');
+  strip.innerHTML = '';
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today = new Date();
+  for (let i=6; i>=0; i--) {
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    const ds = d.toISOString().split('T')[0];
+    const pill = document.createElement('div');
+    pill.className = 'day-pill' + (ds===selectedDate?' sel':'') + (i===0?' today':'');
+    pill.innerHTML = `<div class="dn">${days[d.getDay()]}</div><div class="dd">${d.getDate()}</div>`;
+    pill.onclick = () => { selectedDate=ds; buildDayStrip(); loadMeals(); };
+    strip.appendChild(pill);
+  }
+}
+
+// ── MEALS ──
+async function loadMeals() {
+  const el = document.getElementById('meal-list');
+  el.innerHTML = '<div class="loading">Loading meals…</div>';
+  const start = selectedDate+'T00:00:00'; const end = selectedDate+'T23:59:59';
+  const { data } = await db.from('meals').select('*').eq('user_id',currentUser.id).gte('logged_at',start).lte('logged_at',end).order('logged_at');
+  el.innerHTML = '';
+  if (!data || data.length===0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🍽️</div><p>No meals logged yet today.<br>Tap "+ Log a meal" to start.</p></div>';
+    return;
+  }
+  data.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'meal-card';
+    const t = new Date(m.logged_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    card.innerHTML = `
+      <div class="meal-header"><span class="meal-type">${m.meal_type}</span><span class="meal-time">${t}</span></div>
+      <div class="meal-foods">${m.foods||'—'}</div>
+      <div class="meal-badges">
+        ${m.mood?`<span class="badge badge-terra">${m.mood}</span>`:''}
+        ${m.itchiness?`<span class="badge badge-sand">Itch: ${m.itchiness}</span>`:''}
+        ${m.stomach?`<span class="badge badge-sage">Stomach: ${m.stomach}</span>`:''}
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+async function saveMeal() {
+  const foods = document.getElementById('m-foods').value.trim();
+  if (!foods) { toast('Please enter what you ate.'); return; }
+  const { error } = await db.from('meals').insert({
+    user_id: currentUser.id,
+    meal_type: document.getElementById('m-type').value,
+    foods,
+    mood: emojiSelections['m-mood']||null,
+    itchiness: emojiSelections['m-itch']||null,
+    stomach: emojiSelections['m-stomach']||null,
+    logged_at: new Date().toISOString()
+  });
+  if (error) { toast('Error saving: '+error.message); return; }
+  closeModal('meal-modal');
+  document.getElementById('m-foods').value='';
+  emojiSelections['m-mood']=null; emojiSelections['m-itch']=null; emojiSelections['m-stomach']=null;
+  document.querySelectorAll('#meal-modal .e-btn').forEach(b=>b.classList.remove('sel'));
+  toast('Meal logged! 🌿');
+  loadMeals();
+}
+
+async function saveCheckin() {
+  const { error } = await db.from('meals').insert({
+    user_id: currentUser.id,
+    meal_type: 'Daily Check-in',
+    foods: 'Overall check-in',
+    mood: emojiSelections['mood']||null,
+    itchiness: emojiSelections['itch']||null,
+    inflammation: emojiSelections['inflam']||null,
+    stomach: emojiSelections['stomach']||null,
+    digestion: emojiSelections['digest']||null,
+    bowel: emojiSelections['bowel']||null,
+    logged_at: new Date().toISOString()
+  });
+  if (error) { toast('Error: '+error.message); return; }
+  toast('Check-in saved! ✓');
+}
+
+// ── SKIN ──
+async function saveSkinEntry() {
+  const { error } = await db.from('skin_entries').insert({
+    user_id: currentUser.id,
+    itchiness_level: parseInt(document.getElementById('itch-val').value),
+    redness_level: parseInt(document.getElementById('red-val').value),
+    dryness_level: parseInt(document.getElementById('dry-val').value),
+    notes: document.getElementById('skin-notes').value.trim()||null,
+    logged_at: new Date().toISOString()
+  });
+  if (error) { toast('Error: '+error.message); return; }
+  toast('Skin entry saved! 🌿');
+  document.getElementById('skin-notes').value='';
+  loadSkinHistory();
+}
+
+async function loadSkinHistory() {
+  const el = document.getElementById('skin-history');
+  el.innerHTML = '<div class="loading">Loading…</div>';
+  const { data } = await db.from('skin_entries').select('*').eq('user_id',currentUser.id).order('logged_at',{ascending:false}).limit(7);
+  if (!data||data.length===0) { el.innerHTML='<div class="empty"><p>No entries yet. Log your first skin status above!</p></div>'; return; }
+  el.innerHTML = data.map(e=>{
+    const d = new Date(e.logged_at).toLocaleDateString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div style="padding:10px 0;border-bottom:0.5px solid var(--sand-dark);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:500;color:var(--brown);">${d}</span>
+        ${e.notes?`<span style="font-size:12px;color:var(--text-muted);font-style:italic;">${e.notes}</span>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <div class="bar-wrap"><label>Itch <span>${e.itchiness_level}/10</span></label><div class="bar-track"><div class="bar-fill" style="width:${e.itchiness_level*10}%;background:var(--terra-light);"></div></div></div>
+        <div class="bar-wrap"><label>Redness <span>${e.redness_level}/10</span></label><div class="bar-track"><div class="bar-fill" style="width:${e.redness_level*10}%;background:var(--terra);"></div></div></div>
+        <div class="bar-wrap"><label>Dryness <span>${e.dryness_level}/10</span></label><div class="bar-track"><div class="bar-fill" style="width:${e.dryness_level*10}%;background:var(--sand-dark);"></div></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── PRODUCTS ──
+const prodColors = ['var(--sage)','var(--terra)','var(--sand-dark)','var(--brown-mid)','var(--sage-light)','var(--terra-light)'];
+
+async function loadProducts() {
+  const el = document.getElementById('prod-list');
+  el.innerHTML = '<div class="loading">Loading…</div>';
+  const { data } = await db.from('products').select('*').eq('user_id',currentUser.id).order('created_at');
+  if (!data||data.length===0) { el.innerHTML='<div class="empty"><p>No products yet.</p></div>'; return; }
+  el.innerHTML = data.map((p,i)=>`
+    <li class="prod-item">
+      <div class="prod-dot" style="background:${prodColors[i%prodColors.length]};"></div>
+      <span class="prod-name">${p.name}</span>
+      <span class="prod-freq">${p.frequency}</span>
+      <span style="color:var(--terra);font-size:12px;">${'★'.repeat(p.rating||0)}</span>
+      <button class="prod-del" onclick="deleteProduct('${p.id}')">×</button>
+    </li>`).join('');
+}
+
+async function saveProduct() {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { toast('Please enter a product name.'); return; }
+  const rating = parseInt(emojiSelections['p-rating'])||3;
+  const { error } = await db.from('products').insert({
+    user_id: currentUser.id,
+    name,
+    frequency: document.getElementById('p-freq').value,
+    rating
+  });
+  if (error) { toast('Error: '+error.message); return; }
+  closeModal('prod-modal');
+  document.getElementById('p-name').value='';
+  document.querySelectorAll('#prod-modal .e-btn').forEach(b=>b.classList.remove('sel'));
+  toast('Product added! 🌿');
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+  await db.from('products').delete().eq('id',id);
+  loadProducts();
+  toast('Product removed.');
+}
+
+// ── RESOURCES ──
+const resources = [
+  {cat:'skin',title:'NEA Seal of Acceptance™ Moisturizers',desc:'Fragrance-free, dye-free formulas clinically accepted for eczema-prone skin. Includes CeraVe, Vanicream, and Eucerin.'},
+  {cat:'skin',title:'Wet wrap therapy guide',desc:'Step-by-step wet wrap treatments for severe flares — clinically shown to reduce itch and restore the skin barrier.'},
+  {cat:'skin',title:'Bleach bath protocol',desc:'Diluted bleach baths can reduce bacteria on skin and decrease flare frequency. NEA-recommended ratios and instructions.'},
+  {cat:'makeup',title:'Fragrance-free makeup guide',desc:'Foundation, concealer, and powder picks safe for sensitive skin — no irritants, no common allergens.'},
+  {cat:'makeup',title:'Patch-testing cosmetics',desc:'How to patch-test new makeup products before applying to your face — a must for eczema-prone skin.'},
+  {cat:'clothing',title:'Skin-safe fabric guide',desc:'100% cotton, bamboo, and moisture-wicking fabrics recommended. Avoid: wool, synthetic blends, tight elastic.'},
+  {cat:'clothing',title:'Safe laundry detergents',desc:'Fragrance-free, dye-free detergents approved by NEA. How to double-rinse and reduce residue on clothing.'},
+  {cat:'diet',title:'Common food triggers',desc:'Dairy, eggs, soy, wheat, tree nuts are top triggers. Guidance on elimination diets and working with an allergist.'},
+  {cat:'diet',title:'Anti-inflammatory diet basics',desc:'Omega-3s, probiotics, and antioxidant-rich foods may help reduce systemic inflammation linked to AD flares.'},
+  {cat:'household',title:'Dust mite management',desc:'Mattress covers, HEPA filters, and humidity control — practical steps to reduce a major environmental trigger.'},
+  {cat:'household',title:'Safe cleaning products',desc:'NEA-approved household cleaners that won\'t irritate eczema-prone skin or trigger flares through contact.'},
+  {cat:'skin',title:'Topical steroid guidance',desc:'How to use topical corticosteroids safely — finger-tip unit measurements, application timing, and steroid-sparing strategies.'},
+];
+
+function renderResources(cat) {
+  const grid = document.getElementById('res-grid');
+  const filtered = cat==='all' ? resources : resources.filter(r=>r.cat===cat);
+  const catBadge = {skin:'badge-terra',makeup:'badge-pink',clothing:'badge-blue',diet:'badge-sage',household:'badge-sand'};
+  const catLabel = {skin:'Skincare',makeup:'Makeup',clothing:'Clothing',diet:'Diet',household:'Household'};
+  grid.innerHTML = filtered.map(r=>`
+    <div class="res-card">
+      <span class="badge ${catBadge[r.cat]||'badge-sand'}">${catLabel[r.cat]||r.cat}</span>
+      <h4>${r.title}</h4>
+      <p>${r.desc}</p>
+      <div class="res-source"><span class="eczema-dot"></span> nationaleczema.org</div>
+    </div>`).join('');
+}
+
+function filterRes(chip, cat) {
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  renderResources(cat);
+}
+
+// ── FORUM ──
+async function loadPosts(topicFilter) {
+  const el = document.getElementById('thread-list');
+  el.innerHTML = '<div class="loading">Loading…</div>';
+  let q = db.from('posts').select('*').order('created_at',{ascending:false});
+  if (topicFilter) q = q.eq('topic', topicFilter);
+  const { data } = await q;
+  allPosts = data||[];
+  renderPosts(allPosts);
+}
+
+function renderPosts(posts) {
+  const el = document.getElementById('thread-list');
+  if (!posts||posts.length===0) {
+    el.innerHTML='<div class="empty"><div class="empty-icon">💬</div><p>No threads yet. Be the first to post!</p></div>';
+    return;
+  }
+  const avatarColors = [
+    'background:var(--terra-pale);color:var(--terra);',
+    'background:var(--sage-pale);color:var(--sage-dark);',
+    'background:#E8EAF6;color:#3949AB;',
+    'background:#FCE4EC;color:#C2185B;',
+    'background:var(--sand);color:var(--brown-mid);',
+  ];
+  el.innerHTML = posts.map((p,i)=>{
+    const initials = (p.username||'U').substring(0,2).toUpperCase();
+    const ago = timeAgo(p.created_at);
+    const av = avatarColors[i%avatarColors.length];
+    return `<div class="thread-card" id="thread-${p.id}">
+      <div class="thread-top">
+        <div class="avatar" style="${av}">${initials}</div>
+        <div><div class="thread-author">${p.username||'Anonymous'}</div><div class="thread-time">${ago}</div></div>
+      </div>
+      <h4>${p.title}</h4>
+      <p>${p.body.substring(0,200)}${p.body.length>200?'…':''}</p>
+      <div class="thread-footer">
+        <span class="badge badge-terra">${p.topic||'General'}</span>
+        <span class="thread-stat" style="cursor:pointer;" onclick="toggleReplies('${p.id}',this)">💬 View replies</span>
+      </div>
+      <div class="replies-section" id="replies-${p.id}">
+        <div class="loading" id="replies-loading-${p.id}">Loading replies…</div>
+        <div id="replies-body-${p.id}"></div>
+        <div class="reply-form">
+          <textarea id="reply-input-${p.id}" placeholder="Write a reply…"></textarea>
+          <button class="btn-primary" onclick="saveReply('${p.id}')">Reply</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleReplies(postId, btn) {
+  const section = document.getElementById('replies-'+postId);
+  const isOpen = section.style.display==='block';
+  section.style.display = isOpen?'none':'block';
+  btn.textContent = isOpen?'💬 View replies':'💬 Hide replies';
+  if (!isOpen) await loadReplies(postId);
+}
+
+async function loadReplies(postId) {
+  const loading = document.getElementById('replies-loading-'+postId);
+  const body = document.getElementById('replies-body-'+postId);
+  loading.style.display='block';
+  const { data } = await db.from('replies').select('*').eq('post_id',postId).order('created_at');
+  loading.style.display='none';
+  if (!data||data.length===0) { body.innerHTML='<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">No replies yet — be the first!</p>'; return; }
+  body.innerHTML = data.map(r=>`
+    <div class="reply-item">
+      <div class="avatar" style="background:var(--sand);color:var(--brown-mid);font-size:11px;width:28px;height:28px;">${(r.username||'U').substring(0,2).toUpperCase()}</div>
+      <div class="reply-body">
+        <div class="reply-meta"><strong>${r.username||'Anonymous'}</strong> · ${timeAgo(r.created_at)}</div>
+        <div class="reply-text">${r.body}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function saveReply(postId) {
+  const input = document.getElementById('reply-input-'+postId);
+  const body = input.value.trim();
+  if (!body) return;
+  const { error } = await db.from('replies').insert({ post_id:postId, user_id:currentUser.id, username:currentUsername, body });
+  if (error) { toast('Error: '+error.message); return; }
+  input.value='';
+  toast('Reply posted! 💬');
+  await loadReplies(postId);
+}
+
+async function savePost() {
+  const title = document.getElementById('post-title').value.trim();
+  const body = document.getElementById('post-body').value.trim();
+  if (!title||!body) { toast('Please fill in title and message.'); return; }
+  const { error } = await db.from('posts').insert({
+    user_id: currentUser.id,
+    username: currentUsername,
+    title,
+    body,
+    topic: document.getElementById('post-topic').value
+  });
+  if (error) { toast('Error: '+error.message); return; }
+  closeModal('post-modal');
+  document.getElementById('post-title').value='';
+  document.getElementById('post-body').value='';
+  toast('Thread posted! 🌿');
+  loadPosts();
+}
+
+function filterPosts(topic) { loadPosts(topic); }
+
+// ── HELPERS ──
+function timeAgo(ts) {
+  const diff = (Date.now()-new Date(ts).getTime())/1000;
+  if (diff<60) return 'just now';
+  if (diff<3600) return Math.floor(diff/60)+' min ago';
+  if (diff<86400) return Math.floor(diff/3600)+' hr ago';
+  return Math.floor(diff/86400)+' days ago';
+}
+
+init();
+</script>
+</body>
+</html>
