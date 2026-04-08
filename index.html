@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SkinOasis — Eczema & Skin Health Community</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --terra:#C1602A;--terra-light:#E8916A;--terra-pale:#F5E0D3;--terra-dark:#8B3A10;
+  --sand:#F2EAD8;--sand-dark:#D9C9A8;
+  --sage:#5C7A4E;--sage-light:#8AB07A;--sage-pale:#DCF0D0;--sage-dark:#3A5430;
+  --cream:#FBF5EC;--brown:#4A2E14;--brown-mid:#7A4E28;--brown-light:#A07850;
+  --text:#2E1A0E;--text-muted:#A07850;--danger:#C0392B;
+  --pg:#0D0D0D;--pg-line:#1E1E1E;--pg-text:#E8DCC8;--pg-muted:#6A5A4A;--pg-accent:#C1602A;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);}
+
+/* AUTH */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--brown);position:relative;overflow:hidden;}
+#auth-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(193,96,42,.35) 0%,transparent 60%),radial-gradient(ellipse at 80% 70%,rgba(92,122,78,.25) 0%,transparent 50%);}
+.auth-card{position:relative;z-index:1;background:var(--cream);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.3);}
+.auth-logo{font-family:'Lora',serif;font-size:32px;color:var(--terra);text-align:center;margin-bottom:4px;}
+.auth-logo span{color:var(--sage);}
+.auth-tagline{text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:1.5rem;}
+.auth-tabs{display:flex;margin-bottom:1.25rem;border:1px solid var(--sand-dark);border-radius:10px;overflow:hidden;}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:13px;cursor:pointer;background:var(--sand);color:var(--text-muted);transition:all .15s;}
+.auth-tab.active{background:var(--terra);color:white;}
+.form-group{margin-bottom:.9rem;}
+.form-group label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;}
+.form-group input{width:100%;padding:10px 12px;border:1px solid var(--sand-dark);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);}
+.form-group input:focus{outline:none;border-color:var(--terra);}
+.auth-btn{width:100%;padding:11px;background:var(--terra);color:white;border:none;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:.5rem;}
+.auth-btn:hover{background:var(--terra-dark);}
+.google-btn{width:100%;padding:10px;background:white;color:#333;border:1px solid var(--sand-dark);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.google-btn:hover{background:var(--sand);}
+.divider{display:flex;align-items:center;gap:10px;margin:.75rem 0;font-size:12px;color:var(--text-muted);}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--sand-dark);}
+.auth-msg{font-size:12px;text-align:center;margin-top:.75rem;min-height:18px;}
+.auth-msg.error{color:var(--danger);}
+.auth-msg.success{color:var(--sage);}
+
+/* APP SHELL */
+#app{display:none;flex-direction:column;min-height:100vh;}
+nav{background:var(--brown);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Lora',serif;font-size:22px;color:var(--terra-pale);}
+.logo span{color:var(--sage-light);}
+.nav-right{display:flex;align-items:center;gap:1rem;}
+.nav-user{font-size:13px;color:var(--sand);opacity:.8;}
+.nav-signout{background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--sand);padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.nav-signout:hover{background:rgba(255,255,255,.1);}
+.tabs{display:flex;background:var(--sand);border-bottom:1px solid var(--sand-dark);padding:0 2rem;}
+.tab{padding:13px 20px;font-size:13px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--terra);border-bottom-color:var(--terra);font-weight:500;}
+.tab:hover:not(.active){color:var(--brown-mid);}
+.section{display:none;}
+.section.active{display:block;}
+
+/* SHARED */
+.btn-primary{background:var(--terra);color:white;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.btn-primary:hover{background:var(--terra-dark);}
+.btn-secondary{background:var(--sand);color:var(--brown-mid);border:1px solid var(--sand-dark);padding:8px 16px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--cream);border-radius:16px;padding:1.75rem;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-family:'Lora',serif;font-size:20px;color:var(--brown);margin-bottom:1.25rem;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;letter-spacing:.3px;text-transform:uppercase;}
+.input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--sand-dark);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);}
+.input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terra);}
+textarea{resize:vertical;min-height:70px;}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;}
+.badge-terra{background:var(--terra-pale);color:var(--terra);}
+.badge-sage{background:var(--sage-pale);color:var(--sage-dark);}
+.badge-sand{background:var(--sand);color:var(--brown-light);}
+.badge-blue{background:#E8EAF6;color:#3949AB;}
+.badge-pink{background:#FCE4EC;color:#C2185B;}
+#toast{position:fixed;bottom:2rem;right:2rem;background:var(--brown);color:white;padding:10px 18px;border-radius:10px;font-size:13px;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;}
+#toast.show{transform:translateY(0);opacity:1;}
+.loading{text-align:center;padding:2rem;color:var(--text-muted);font-size:14px;}
+.empty{text-align:center;padding:2rem;color:var(--text-muted);font-size:14px;}
+
+/* JOURNAL */
+#s0{background:var(--pg);min-height:calc(100vh - 110px);}
+.journal-page{max-width:800px;margin:0 auto;padding:2rem 1.5rem 2rem;position:relative;}
+.journal-page::before{content:'';position:absolute;left:96px;top:0;bottom:0;width:1px;background:rgba(193,96,42,.15);pointer-events:none;}
+
+.journal-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--pg-line);}
+.j-nav-btn{background:none;border:1px solid #252525;color:var(--pg-muted);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.j-nav-btn:hover:not(:disabled){border-color:var(--pg-accent);color:var(--pg-accent);}
+.j-nav-btn:disabled{opacity:.25;cursor:default;}
+.j-date-center{position:relative;text-align:center;}
+.j-date-display{font-family:'Caveat',cursive;font-size:24px;color:var(--pg-text);cursor:pointer;padding:4px 12px;border-radius:8px;border:1px solid transparent;transition:all .15s;display:inline-block;}
+.j-date-display:hover{border-color:#252525;}
+.date-popup{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:#181818;border:1px solid #2A2A2A;border-radius:12px;padding:1rem;z-index:50;display:none;box-shadow:0 8px 32px rgba(0,0,0,.7);}
+.date-popup.open{display:block;}
+.date-popup input[type=date]{background:#222;color:var(--pg-text);border:1px solid #333;border-radius:8px;padding:8px 12px;font-size:14px;font-family:'DM Sans',sans-serif;}
+.date-popup input[type=date]:focus{outline:none;border-color:var(--pg-accent);}
+.j-tap-hint{font-size:11px;color:#333;margin-top:3px;}
+
+.j-section{margin-bottom:2rem;}
+.j-section-title{font-family:'Caveat',cursive;font-size:20px;color:var(--pg-accent);margin-bottom:1rem;display:flex;align-items:center;gap:10px;}
+.j-section-title::after{content:'';flex:1;height:1px;background:var(--pg-line);}
+
+.meal-card-j{background:#111;border:1px solid var(--pg-line);border-radius:10px;padding:12px;margin-bottom:8px;}
+.meal-card-j-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.meal-type-j{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--pg-muted);}
+.meal-del-btn{background:none;border:none;color:#333;cursor:pointer;font-size:16px;line-height:1;}
+.meal-del-btn:hover{color:#666;}
+.meal-food-j{font-family:'Caveat',cursive;font-size:17px;color:var(--pg-text);line-height:1.5;margin-bottom:6px;}
+.al-chips-j{display:flex;gap:4px;flex-wrap:wrap;}
+.al-chip-j{font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(193,96,42,.12);border:1px solid rgba(193,96,42,.3);color:var(--pg-accent);}
+.add-meal-btn{width:100%;padding:10px;background:transparent;border:1px dashed #252525;border-radius:10px;color:var(--pg-muted);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;}
+.add-meal-btn:hover{border-color:var(--pg-accent);color:var(--pg-accent);}
+
+.j-slider-row{margin-bottom:16px;}
+.j-slider-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+.j-slider-name{font-size:14px;color:var(--pg-text);}
+.j-slider-num{font-family:'Caveat',cursive;font-size:22px;color:var(--pg-accent);}
+input[type=range].j-slider{width:100%;-webkit-appearance:none;appearance:none;height:4px;background:#222;border-radius:2px;outline:none;}
+input[type=range].j-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--pg-accent);cursor:pointer;}
+input[type=range].j-slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--pg-accent);cursor:pointer;border:none;}
+.j-slider-ends{display:flex;justify-content:space-between;font-size:10px;color:#333;margin-top:3px;}
+
+.mood-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-bottom:8px;}
+.mood-btn{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;border:1px solid #222;background:#111;cursor:pointer;transition:all .12s;padding:2px;}
+.mood-btn:hover{border-color:var(--pg-accent);}
+.mood-btn.sel{background:rgba(193,96,42,.2);border-color:var(--pg-accent);}
+.mood-emoji{font-size:16px;}
+.mood-num{font-size:9px;color:var(--pg-muted);margin-top:1px;}
+.mood-btn.sel .mood-num{color:var(--pg-accent);}
+.mood-label{text-align:center;font-size:12px;color:var(--pg-muted);min-height:18px;}
+
+.body-wrap{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap;}
+.body-zone{fill:rgba(255,255,255,.05);stroke:#2A2A2A;stroke-width:1;cursor:pointer;transition:fill .12s;}
+.body-zone:hover{fill:rgba(193,96,42,.18);}
+.body-zone.sel{fill:rgba(193,96,42,.45);stroke:var(--pg-accent);stroke-width:1.5;}
+.body-legend-title{font-size:11px;color:var(--pg-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.zone-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.zone-list li{font-size:12px;color:var(--pg-accent);display:flex;align-items:center;gap:5px;}
+.zone-list li::before{content:'◆';font-size:8px;}
+.zone-empty{font-size:12px;color:#333;}
+
+.j-notes-area{background:#111;border:1px solid var(--pg-line);color:var(--pg-text);font-family:'Caveat',cursive;font-size:17px;line-height:1.9;width:100%;min-height:100px;border-radius:10px;padding:12px;}
+.j-notes-area:focus{outline:none;border-color:var(--pg-accent);}
+.j-notes-area::placeholder{color:#2A2A2A;}
+
+.journal-save-bar{position:sticky;bottom:0;background:rgba(13,13,13,.96);border-top:1px solid var(--pg-line);padding:12px 1.5rem;display:flex;justify-content:flex-end;gap:10px;}
+.j-save-btn{background:var(--pg-accent);color:white;border:none;padding:9px 22px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.j-save-btn:hover{background:var(--terra-dark);}
+.j-discard-btn{background:transparent;border:1px solid #252525;color:var(--pg-muted);padding:9px 16px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.j-discard-btn:hover{border-color:#444;color:#888;}
+
+/* allergen modal btns */
+.allergen-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;}
+.al-btn{padding:6px 4px;border-radius:8px;border:1px solid var(--sand-dark);background:white;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text-muted);text-align:center;transition:all .12s;}
+.al-btn.sel{background:var(--terra-pale);border-color:var(--terra);color:var(--terra);font-weight:500;}
+
+/* RESOURCES */
+#s1{padding:2rem;}
+.res-wrap{max-width:1000px;margin:0 auto;}
+.page-header{margin-bottom:1.5rem;}
+.page-header h2{font-family:'Lora',serif;font-size:26px;color:var(--brown);margin-bottom:4px;}
+.page-header p{font-size:13px;color:var(--text-muted);}
+.filter-row{display:flex;gap:7px;margin-bottom:1.5rem;flex-wrap:wrap;}
+.filter-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--sand-dark);background:white;font-size:12px;color:var(--text-muted);cursor:pointer;transition:all .15s;}
+.filter-chip.active{background:var(--terra);border-color:var(--terra);color:white;}
+.res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.res-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:16px;display:flex;flex-direction:column;}
+.res-card h4{font-family:'Lora',serif;font-size:15px;color:var(--brown);margin:6px 0;line-height:1.4;}
+.res-card p{font-size:12px;color:var(--text-muted);line-height:1.5;flex:1;margin-bottom:12px;}
+.res-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--terra);text-decoration:none;font-weight:500;padding:6px 12px;border-radius:8px;background:var(--terra-pale);border:1px solid rgba(193,96,42,.2);transition:all .15s;width:fit-content;}
+.res-link:hover{background:var(--terra);color:white;}
+.recipe-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;}
+.recipe-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:16px;}
+.recipe-card h4{font-family:'Lora',serif;font-size:15px;color:var(--brown);margin-bottom:4px;}
+.recipe-meta{font-size:11px;color:var(--text-muted);margin-bottom:8px;}
+.recipe-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;}
+.recipe-step-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin:8px 0 4px;}
+.recipe-card ul,.recipe-card ol{padding-left:16px;font-size:12px;color:var(--text-muted);line-height:1.7;}
+
+/* COMMUNITY */
+#s2{padding:2rem;}
+.comm-wrap{max-width:1000px;margin:0 auto;}
+.forum-layout{display:grid;grid-template-columns:1fr 250px;gap:1.25rem;}
+.thread-list{display:flex;flex-direction:column;gap:10px;}
+.thread-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:14px;}
+.thread-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.thread-author{font-size:13px;color:var(--brown);font-weight:500;}
+.thread-time{font-size:11px;color:var(--text-muted);}
+.thread-card h4{font-size:14px;color:var(--text);margin-bottom:6px;line-height:1.4;}
+.thread-card p{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;}
+.thread-footer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.thread-stat{font-size:11px;color:var(--text-muted);margin-left:auto;cursor:pointer;}
+.own-actions{display:flex;gap:6px;}
+.own-btn{background:none;border:none;font-size:11px;cursor:pointer;padding:3px 8px;border-radius:6px;font-family:'DM Sans',sans-serif;}
+.own-btn.edit-btn{color:var(--sage-dark);background:var(--sage-pale);}
+.own-btn.del-btn{color:var(--danger);background:#FDECEA;}
+.reaction-bar{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.reaction-btn{background:var(--sand);border:1px solid var(--sand-dark);border-radius:20px;padding:3px 9px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;font-family:'DM Sans',sans-serif;transition:all .12s;}
+.reaction-btn:hover{background:var(--terra-pale);}
+.reaction-btn.reacted{background:var(--terra-pale);border-color:var(--terra);}
+.reaction-count{font-size:11px;color:var(--text-muted);}
+.replies-section{margin-top:12px;border-top:1px solid var(--sand-dark);padding-top:12px;display:none;}
+.reply-item{display:flex;gap:10px;margin-bottom:10px;}
+.reply-body{flex:1;background:var(--sand);border-radius:10px;padding:10px 12px;font-size:13px;}
+.reply-meta{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
+.reply-text{color:var(--text);line-height:1.5;}
+.reply-form{display:flex;gap:8px;margin-top:8px;}
+.reply-form textarea{flex:1;min-height:50px;font-size:13px;}
+.sidebar-card{background:white;border-radius:12px;border:1px solid var(--sand-dark);padding:14px;margin-bottom:1rem;}
+.sidebar-card h4{font-size:13px;color:var(--brown);font-weight:500;margin-bottom:10px;}
+.topic-list{list-style:none;}
+.topic-list li{font-size:12px;color:var(--text-muted);padding:5px 0;border-bottom:.5px solid var(--sand-dark);cursor:pointer;}
+.topic-list li:last-child{border-bottom:none;}
+.topic-list li:hover{color:var(--terra);}
+
+@media(max-width:700px){
+  .res-grid,.forum-layout,.recipe-grid{grid-template-columns:1fr;}
+  #s1,#s2{padding:1rem;}
+  .allergen-grid{grid-template-columns:repeat(3,1fr);}
+  .mood-grid{grid-template-columns:repeat(5,1fr);}
+  .journal-page::before{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Skin<span>Oasis</span></div>
+    <div class="auth-tagline">Your eczema & skin health companion</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuth('login')">Sign in</div>
+      <div class="auth-tab" onclick="switchAuth('signup')">Create account</div>
+    </div>
+    <div id="login-form">
+      <button class="google-btn" onclick="doGoogle()"><svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>Continue with Google</button>
+      <div class="divider">or</div>
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
+      <button class="auth-btn" onclick="doLogin()">Sign in</button>
+      <div style="text-align:center;margin-top:10px;"><span onclick="switchAuth('reset')" style="font-size:12px;color:var(--terra);cursor:pointer;text-decoration:underline;">Forgot your password?</span></div>
+    </div>
+    <div id="signup-form" style="display:none;">
+      <button class="google-btn" onclick="doGoogle()"><svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>Sign up with Google</button>
+      <div class="divider">or</div>
+      <div class="form-group"><label>Username</label><input type="text" id="signup-name" placeholder="e.g. SkinWarrior2024"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="signup-pass" placeholder="at least 6 characters"/></div>
+      <button class="auth-btn" onclick="doSignup()">Create account</button>
+    </div>
+    <div id="reset-form" style="display:none;">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Enter your email and we'll send you a link to reset your password.</p>
+      <div class="form-group"><label>Email</label><input type="email" id="reset-email" placeholder="you@example.com"/></div>
+      <button class="auth-btn" onclick="doReset()">Send reset link</button>
+      <div style="text-align:center;margin-top:10px;"><span onclick="switchAuth('login')" style="font-size:12px;color:var(--terra);cursor:pointer;text-decoration:underline;">Back to sign in</span></div>
+    </div>
+    <div id="newpass-form" style="display:none;">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Choose a new password for your account.</p>
+      <div class="form-group"><label>New password</label><input type="password" id="newpass1" placeholder="at least 6 characters"/></div>
+      <div class="form-group"><label>Confirm new password</label><input type="password" id="newpass2" placeholder="repeat your new password"/></div>
+      <button class="auth-btn" onclick="doSetNewPassword()">Set new password</button>
+    </div>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav>
+    <div class="logo">Skin<span>Oasis</span></div>
+    <div class="nav-right">
+      <span class="nav-user" id="nav-username"></span>
+      <button class="nav-signout" onclick="doSignout()">Sign out</button>
+    </div>
+  </nav>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(0)">📓 Journal</div>
+    <div class="tab" onclick="showTab(1)">📋 Resources</div>
+    <div class="tab" onclick="showTab(2)">💬 Community</div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div class="section active" id="s0">
+    <div class="journal-page" id="journal-page">
+      <div class="journal-topbar">
+        <button class="j-nav-btn" id="j-prev" onclick="jGoPrev()">‹ Prev</button>
+        <div class="j-date-center">
+          <div class="j-date-display" id="j-date-display" onclick="toggleDatePopup()"></div>
+          <div class="j-tap-hint">tap to jump to date</div>
+          <div class="date-popup" id="date-popup">
+            <input type="date" id="date-input" onchange="jGoDate(this.value)"/>
+          </div>
+        </div>
+        <button class="j-nav-btn" id="j-next" onclick="jGoNext()">Next ›</button>
+      </div>
+
+      <div class="j-section">
+        <div class="j-section-title">Meals</div>
+        <div id="j-meals"></div>
+        <button class="add-meal-btn" onclick="openModal('meal-modal')">+ Add a meal</button>
+      </div>
+
+      <div class="j-section">
+        <div class="j-section-title">Symptoms</div>
+        <div class="j-slider-row">
+          <div class="j-slider-top"><span class="j-slider-name">Itchiness</span><span class="j-slider-num" id="v-itch">5</span></div>
+          <input type="range" class="j-slider" min="1" max="10" value="5" step="1" id="s-itch" oninput="document.getElementById('v-itch').textContent=this.value"/>
+          <div class="j-slider-ends"><span>None</span><span>Severe</span></div>
+        </div>
+        <div class="j-slider-row">
+          <div class="j-slider-top"><span class="j-slider-name">Stomach pain</span><span class="j-slider-num" id="v-stomach">5</span></div>
+          <input type="range" class="j-slider" min="1" max="10" value="5" step="1" id="s-stomach" oninput="document.getElementById('v-stomach').textContent=this.value"/>
+          <div class="j-slider-ends"><span>None</span><span>Severe</span></div>
+        </div>
+        <div class="j-slider-row">
+          <div class="j-slider-top"><span class="j-slider-name">Skin flares</span><span class="j-slider-num" id="v-flare">5</span></div>
+          <input type="range" class="j-slider" min="1" max="10" value="5" step="1" id="s-flare" oninput="document.getElementById('v-flare').textContent=this.value"/>
+          <div class="j-slider-ends"><span>None</span><span>Severe</span></div>
+        </div>
+      </div>
+
+      <div class="j-section">
+        <div class="j-section-title">Mood</div>
+        <div class="mood-grid">
+          <div class="mood-btn" data-val="1" data-label="Terrible" onclick="pickMood(this)"><div class="mood-emoji">😭</div><div class="mood-num">1</div></div>
+          <div class="mood-btn" data-val="2" data-label="Really bad" onclick="pickMood(this)"><div class="mood-emoji">😢</div><div class="mood-num">2</div></div>
+          <div class="mood-btn" data-val="3" data-label="Bad" onclick="pickMood(this)"><div class="mood-emoji">😔</div><div class="mood-num">3</div></div>
+          <div class="mood-btn" data-val="4" data-label="Low" onclick="pickMood(this)"><div class="mood-emoji">😟</div><div class="mood-num">4</div></div>
+          <div class="mood-btn" data-val="5" data-label="Neutral" onclick="pickMood(this)"><div class="mood-emoji">😐</div><div class="mood-num">5</div></div>
+          <div class="mood-btn" data-val="6" data-label="Okay" onclick="pickMood(this)"><div class="mood-emoji">🙂</div><div class="mood-num">6</div></div>
+          <div class="mood-btn" data-val="7" data-label="Good" onclick="pickMood(this)"><div class="mood-emoji">😊</div><div class="mood-num">7</div></div>
+          <div class="mood-btn" data-val="8" data-label="Great" onclick="pickMood(this)"><div class="mood-emoji">😄</div><div class="mood-num">8</div></div>
+          <div class="mood-btn" data-val="9" data-label="Really good" onclick="pickMood(this)"><div class="mood-emoji">😁</div><div class="mood-num">9</div></div>
+          <div class="mood-btn" data-val="10" data-label="Amazing!" onclick="pickMood(this)"><div class="mood-emoji">🤩</div><div class="mood-num">10</div></div>
+        </div>
+        <div class="mood-label" id="mood-label">Select your mood for today</div>
+      </div>
+
+      <div class="j-section">
+        <div class="j-section-title">Flare locations</div>
+        <div class="body-wrap">
+          <div>
+            <svg width="160" height="300" viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg">
+              <ellipse class="body-zone" data-zone="Head" cx="80" cy="24" rx="22" ry="22" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Neck" x="73" y="46" width="14" height="14" rx="4" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Left shoulder" cx="44" cy="70" rx="16" ry="10" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Right shoulder" cx="116" cy="70" rx="16" ry="10" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Chest" x="56" y="62" width="48" height="34" rx="6" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Abdomen" x="58" y="98" width="44" height="32" rx="6" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Left upper arm" x="24" y="68" width="16" height="32" rx="6" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Right upper arm" x="120" y="68" width="16" height="32" rx="6" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Left elbow" cx="32" cy="106" rx="9" ry="8" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Right elbow" cx="128" cy="106" rx="9" ry="8" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Left forearm" x="24" y="116" width="14" height="28" rx="5" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Right forearm" x="122" y="116" width="14" height="28" rx="5" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Left hand" cx="31" cy="155" rx="10" ry="12" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Right hand" cx="129" cy="155" rx="10" ry="12" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Left thigh" x="58" y="132" width="20" height="44" rx="6" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Right thigh" x="82" y="132" width="20" height="44" rx="6" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Left knee" cx="68" cy="182" rx="10" ry="8" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Right knee" cx="92" cy="182" rx="10" ry="8" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Left shin" x="60" y="192" width="16" height="46" rx="5" onclick="toggleZone(this)"/>
+              <rect class="body-zone" data-zone="Right shin" x="84" y="192" width="16" height="46" rx="5" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Left foot" cx="66" cy="246" rx="13" ry="8" onclick="toggleZone(this)"/>
+              <ellipse class="body-zone" data-zone="Right foot" cx="94" cy="246" rx="13" ry="8" onclick="toggleZone(this)"/>
+            </svg>
+          </div>
+          <div style="flex:1;min-width:120px;">
+            <div class="body-legend-title">Areas selected</div>
+            <ul class="zone-list" id="zone-list"><li class="zone-empty">Tap body areas to mark flares</li></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="j-section">
+        <div class="j-section-title">Notes</div>
+        <textarea class="j-notes-area" id="j-notes" placeholder="Anything else on your mind today…"></textarea>
+      </div>
+    </div>
+    <div class="journal-save-bar">
+      <button class="j-discard-btn" onclick="loadJournalEntry()">Discard</button>
+      <button class="j-save-btn" onclick="saveJournalEntry()">Save entry</button>
+    </div>
+  </div>
+
+  <!-- RESOURCES -->
+  <div class="section" id="s1">
+    <div class="res-wrap">
+      <div class="page-header"><h2>Resources</h2><p>Trusted guidance from the National Eczema Association, plus anti-inflammatory recipes.</p></div>
+      <div class="filter-row">
+        <div class="filter-chip active" onclick="filterRes(this,'all')">All</div>
+        <div class="filter-chip" onclick="filterRes(this,'sleep')">Sleep</div>
+        <div class="filter-chip" onclick="filterRes(this,'treatment')">Treatment</div>
+        <div class="filter-chip" onclick="filterRes(this,'mental')">Mental health</div>
+        <div class="filter-chip" onclick="filterRes(this,'diet')">Diet</div>
+        <div class="filter-chip" onclick="filterRes(this,'skincare')">Skincare</div>
+        <div class="filter-chip" onclick="filterRes(this,'makeup')">Makeup</div>
+        <div class="filter-chip" onclick="filterRes(this,'clothing')">Clothing</div>
+        <div class="filter-chip" onclick="filterRes(this,'recipes')">🥗 Recipes</div>
+      </div>
+      <div id="res-container"></div>
+    </div>
+  </div>
+
+  <!-- COMMUNITY -->
+  <div class="section" id="s2">
+    <div class="comm-wrap">
+      <div class="page-header"><h2>Community Forum</h2><p>You are not alone — connect with others who truly understand.</p></div>
+      <div class="forum-layout">
+        <div>
+          <button class="btn-primary" style="width:100%;margin-bottom:1rem;" onclick="openPostModal()">+ Start a new thread</button>
+          <div class="thread-list" id="thread-list"><div class="loading">Loading…</div></div>
+        </div>
+        <div>
+          <div class="sidebar-card">
+            <h4>Browse topics</h4>
+            <ul class="topic-list">
+              <li onclick="loadPosts('Skincare')">Skincare routines</li>
+              <li onclick="loadPosts('Diet')">Diet & food triggers</li>
+              <li onclick="loadPosts('Mental health')">Mental health</li>
+              <li onclick="loadPosts('Children')">Children & family</li>
+              <li onclick="loadPosts('Treatments')">Treatments</li>
+              <li onclick="loadPosts('Success')">Success stories</li>
+              <li onclick="loadPosts(null)">Show all</li>
+            </ul>
+          </div>
+          <div class="sidebar-card" style="background:var(--terra-pale);border-color:rgba(193,96,42,.3);">
+            <h4 style="color:var(--terra);">You are not alone.</h4>
+            <p style="font-size:12px;color:var(--brown-mid);line-height:1.6;margin-top:4px;">Over 31 million people in the US live with eczema. This community exists so none of them have to figure it out alone.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="meal-modal">
+  <div class="modal">
+    <h3>Add a meal</h3>
+    <div class="field"><label>Meal type</label><select id="m-type"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div>
+    <div class="field"><label>What did you eat?</label><textarea id="m-foods" placeholder="e.g. Oat porridge, blueberries, almond milk…"></textarea></div>
+    <div class="field">
+      <label>Allergens — tap all that apply</label>
+      <div class="allergen-grid">
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌾 Gluten</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🥛 Dairy</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🥜 Peanuts</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌰 Tree nuts</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🥚 Eggs</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🐟 Fish</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🦐 Shellfish</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🫘 Soy</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌽 Corn</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🍅 Nightshades</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌻 Seeds</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🧄 Alliums</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('meal-modal')">Cancel</button>
+      <button class="btn-primary" onclick="addMeal()">Add meal</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="post-modal">
+  <div class="modal">
+    <h3 id="post-modal-title">Start a new thread</h3>
+    <input type="hidden" id="edit-post-id"/>
+    <div class="field"><label>Topic</label><select id="post-topic"><option>Skincare</option><option>Diet</option><option>Mental health</option><option>Children</option><option>Treatments</option><option>Success</option><option>General</option></select></div>
+    <div class="field"><label>Title</label><input class="input" id="post-title" placeholder="What's on your mind?"/></div>
+    <div class="field"><label>Your message</label><textarea id="post-body" style="min-height:120px;" placeholder="Share your experience, question, or story…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('post-modal')">Cancel</button>
+      <button class="btn-primary" onclick="savePost()">Post</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SURL='https://tregladzmrshhwdeiatr.supabase.co';
+const SKEY='sb_publishable_Ps2WyfdfwXCqeFd8QxLlFA_sjrSkEl6';
+const {createClient}=supabase;
+const db=createClient(SURL,SKEY);
+
+let CU=null,CUN='';
+let jDate=new Date().toISOString().split('T')[0];
+const TODAY=new Date().toISOString().split('T')[0];
+let pendingMeals=[];
+let selMood=null;
+let selZones=[];
+const REACTIONS=[{k:'heart',e:'❤️'},{k:'cry',e:'😢'},{k:'hug',e:'🤗'},{k:'fire',e:'🔥'},{k:'clap',e:'👏'}];
+
+// AUTH
+async function init(){
+  const {data:{session}}=await db.auth.getSession();
+  // detect password recovery link (contains type=recovery in hash)
+  const hash=window.location.hash;
+  if(hash.includes('type=recovery')){
+    // show the new password screen — user is already authenticated by the link
+    showAuthScreen('newpass');
+    return;
+  }
+  if(session){CU=session.user;await afterLogin();}
+  db.auth.onAuthStateChange(async(ev,sess)=>{
+    if(ev==='PASSWORD_RECOVERY'){
+      showAuthScreen('newpass');
+    } else if(ev==='SIGNED_IN'&&sess&&!CU){
+      CU=sess.user;await afterLogin();
+    }
+  });
+}
+function showAuthScreen(form){
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  switchAuth(form);
+}
+function switchAuth(m){
+  ['login','signup','reset','newpass'].forEach(x=>{
+    const el=document.getElementById(x+'-form');
+    if(el)el.style.display=x===m?'block':'none';
+  });
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(m==='login'&&i===0)||(m==='signup'&&i===1)));
+  document.getElementById('auth-msg').textContent='';
+}
+async function doSetNewPassword(){
+  const p1=document.getElementById('newpass1').value;
+  const p2=document.getElementById('newpass2').value;
+  if(!p1||p1.length<6){setMsg('Password must be at least 6 characters.','error');return;}
+  if(p1!==p2){setMsg('Passwords do not match.','error');return;}
+  setMsg('Updating password…','');
+  const {error}=await db.auth.updateUser({password:p1});
+  if(error){setMsg(error.message,'error');return;}
+  setMsg('Password updated! Signing you in…','success');
+  setTimeout(async()=>{
+    const {data:{session}}=await db.auth.getSession();
+    if(session){CU=session.user;await afterLogin();}
+  },1200);
+}
+async function doGoogle(){const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});if(error)setMsg(error.message,'error');}
+async function doLogin(){
+  const e=document.getElementById('login-email').value.trim(),p=document.getElementById('login-pass').value;
+  setMsg('Signing in…','');
+  const {data,error}=await db.auth.signInWithPassword({email:e,password:p});
+  if(error){setMsg(error.message,'error');return;}
+  CU=data.user;await afterLogin();
+}
+async function doSignup(){
+  const n=document.getElementById('signup-name').value.trim(),e=document.getElementById('signup-email').value.trim(),p=document.getElementById('signup-pass').value;
+  if(!n){setMsg('Please enter a username.','error');return;}
+  setMsg('Creating account…','');
+  const {data,error}=await db.auth.signUp({email:e,password:p});
+  if(error){setMsg(error.message,'error');return;}
+  CU=data.user;await db.from('profiles').upsert({id:CU.id,username:n});CUN=n;await afterLogin();
+}
+async function doReset(){
+  const e=document.getElementById('reset-email').value.trim();
+  if(!e){setMsg('Please enter your email.','error');return;}
+  setMsg('Sending…','');
+  const {error}=await db.auth.resetPasswordForEmail(e,{redirectTo:window.location.href});
+  if(error){setMsg(error.message,'error');return;}
+  setMsg('Reset link sent! Check your inbox.','success');
+}
+async function afterLogin(){
+  if(!CUN){const {data}=await db.from('profiles').select('username').eq('id',CU.id).single();CUN=data?.username||CU.email?.split('@')[0]||'Friend';if(!data?.username)await db.from('profiles').upsert({id:CU.id,username:CUN});}
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('nav-username').textContent=CUN;
+  updateJDateDisplay();await loadJournalEntry();renderResources('all');loadPosts();
+}
+async function doSignout(){await db.auth.signOut();location.reload();}
+function setMsg(m,t){const el=document.getElementById('auth-msg');el.textContent=m;el.className='auth-msg'+(t?' '+t:'');}
+
+// TABS
+function showTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.section').forEach((s,j)=>s.classList.toggle('active',j===i));
+}
+
+// MODALS
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// JOURNAL DATE
+function updateJDateDisplay(){
+  const d=new Date(jDate+'T12:00:00');
+  document.getElementById('j-date-display').textContent=d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('date-input').value=jDate;
+  document.getElementById('j-next').disabled=jDate>=TODAY;
+  const min=new Date();min.setFullYear(min.getFullYear()-1);
+  document.getElementById('date-input').min=min.toISOString().split('T')[0];
+  document.getElementById('date-input').max=TODAY;
+}
+function toggleDatePopup(){document.getElementById('date-popup').classList.toggle('open');}
+document.addEventListener('click',e=>{const p=document.getElementById('date-popup');const d=document.getElementById('j-date-display');if(p&&!p.contains(e.target)&&e.target!==d)p.classList.remove('open');});
+async function jGoPrev(){
+  const d=new Date(jDate+'T12:00:00');d.setDate(d.getDate()-1);
+  const min=new Date();min.setFullYear(min.getFullYear()-1);
+  if(d<min)return;
+  jDate=d.toISOString().split('T')[0];updateJDateDisplay();await loadJournalEntry();
+}
+async function jGoNext(){
+  if(jDate>=TODAY)return;
+  const d=new Date(jDate+'T12:00:00');d.setDate(d.getDate()+1);
+  jDate=d.toISOString().split('T')[0];updateJDateDisplay();await loadJournalEntry();
+}
+async function jGoDate(v){if(!v)return;jDate=v;document.getElementById('date-popup').classList.remove('open');updateJDateDisplay();await loadJournalEntry();}
+
+// JOURNAL LOAD
+async function loadJournalEntry(){
+  pendingMeals=[];selMood=null;selZones=[];
+  document.querySelectorAll('.body-zone').forEach(z=>z.classList.remove('sel'));
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('mood-label').textContent='Select your mood for today';
+  document.getElementById('j-notes').value='';
+  ['s-itch','s-stomach','s-flare'].forEach(id=>{document.getElementById(id).value=5;});
+  ['v-itch','v-stomach','v-flare'].forEach(id=>{document.getElementById(id).textContent='5';});
+
+  const s=jDate+'T00:00:00',e=jDate+'T23:59:59';
+  const [{data:meals},{data:skin}]=await Promise.all([
+    db.from('meals').select('*').eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e).order('logged_at'),
+    db.from('skin_entries').select('*').eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e).order('logged_at',{ascending:false}).limit(1)
+  ]);
+  if(meals){
+    const ci=meals.find(m=>m.meal_type==='Daily Check-in');
+    pendingMeals=meals.filter(m=>m.meal_type!=='Daily Check-in').map(m=>({id:m.id,type:m.meal_type,foods:m.foods,allergens:m.inflammation?m.inflammation.split('|').filter(Boolean):[]}));
+    if(ci){
+      if(ci.mood){selMood=parseInt(ci.mood);const b=document.querySelector(`.mood-btn[data-val="${selMood}"]`);if(b){b.classList.add('sel');document.getElementById('mood-label').textContent=`${selMood}/10 — ${b.dataset.label}`;}}
+      if(ci.bowel)document.getElementById('j-notes').value=ci.bowel;
+    }
+  }
+  if(skin&&skin[0]){
+    const sk=skin[0];
+    const map={itch:sk.itchiness_level,stomach:sk.redness_level,flare:sk.dryness_level};
+    Object.entries(map).forEach(([k,v])=>{if(v){document.getElementById('s-'+k).value=v;document.getElementById('v-'+k).textContent=v;}});
+    if(sk.notes){selZones=sk.notes.split('|').filter(Boolean);selZones.forEach(z=>{const el=document.querySelector(`.body-zone[data-zone="${z}"]`);if(el)el.classList.add('sel');});updateZoneLegend();}
+  }
+  renderMeals();
+}
+
+// MEALS
+function renderMeals(){
+  const el=document.getElementById('j-meals');
+  if(!pendingMeals.length){el.innerHTML='';return;}
+  el.innerHTML=pendingMeals.map((m,i)=>`
+    <div class="meal-card-j">
+      <div class="meal-card-j-header"><span class="meal-type-j">${m.type}</span><button class="meal-del-btn" onclick="delMeal(${i})">×</button></div>
+      <div class="meal-food-j">${m.foods}</div>
+      ${m.allergens.length?`<div class="al-chips-j">${m.allergens.map(a=>`<span class="al-chip-j">${a}</span>`).join('')}</div>`:''}
+    </div>`).join('');
+}
+function delMeal(i){pendingMeals.splice(i,1);renderMeals();}
+function addMeal(){
+  const foods=document.getElementById('m-foods').value.trim();
+  if(!foods){toast('Please enter what you ate.');return;}
+  const allergens=[...document.querySelectorAll('#meal-modal .al-btn.sel')].map(b=>b.textContent.trim());
+  pendingMeals.push({type:document.getElementById('m-type').value,foods,allergens});
+  renderMeals();closeModal('meal-modal');
+  document.getElementById('m-foods').value='';
+  document.querySelectorAll('#meal-modal .al-btn').forEach(b=>b.classList.remove('sel'));
+  toast('Meal added!');
+}
+
+// MOOD
+function pickMood(btn){
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');selMood=parseInt(btn.dataset.val);
+  document.getElementById('mood-label').textContent=`${selMood}/10 — ${btn.dataset.label}`;
+}
+
+// BODY MAP
+function toggleZone(el){
+  el.classList.toggle('sel');
+  const z=el.dataset.zone;
+  if(el.classList.contains('sel')){if(!selZones.includes(z))selZones.push(z);}
+  else selZones=selZones.filter(x=>x!==z);
+  updateZoneLegend();
+}
+function updateZoneLegend(){
+  const el=document.getElementById('zone-list');
+  if(!selZones.length){el.innerHTML='<li class="zone-empty">Tap body areas to mark flares</li>';return;}
+  el.innerHTML=selZones.map(z=>`<li>${z}</li>`).join('');
+}
+
+// SAVE
+async function saveJournalEntry(){
+  const ts=new Date(jDate+'T12:00:00').toISOString();
+  const s=jDate+'T00:00:00',e=jDate+'T23:59:59';
+  await Promise.all([
+    db.from('meals').delete().eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e),
+    db.from('skin_entries').delete().eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e)
+  ]);
+  if(pendingMeals.length){
+    await db.from('meals').insert(pendingMeals.map(m=>({user_id:CU.id,meal_type:m.type,foods:m.foods,inflammation:m.allergens.join('|'),logged_at:ts})));
+  }
+  await db.from('meals').insert({user_id:CU.id,meal_type:'Daily Check-in',foods:'Check-in',mood:selMood?String(selMood):null,bowel:document.getElementById('j-notes').value.trim()||null,logged_at:ts});
+  await db.from('skin_entries').insert({user_id:CU.id,itchiness_level:parseInt(document.getElementById('s-itch').value),redness_level:parseInt(document.getElementById('s-stomach').value),dryness_level:parseInt(document.getElementById('s-flare').value),notes:selZones.join('|')||null,logged_at:ts});
+  toast('Entry saved! 🌿');
+}
+
+// RESOURCES
+const resources=[
+  {cat:'sleep',title:'Improving sleep during a flare',desc:'Practical strategies to manage nighttime itch and improve sleep quality even when your eczema is at its worst.',url:'https://nationaleczema.org/blog/good-night-how-to-improve-your-sleep-even-when-your-eczema-is-flaring/'},
+  {cat:'treatment',title:'Complementary & alternative therapies',desc:'A balanced look at natural remedies, what the evidence says, and how to talk to your doctor about them.',url:'https://nationaleczema.org/blog/eczema-treatment-naturally-a-look-at-complementary-and-alternative-therapies/'},
+  {cat:'treatment',title:'Eczema myth-busting',desc:'Clearing up the most common misinformation and unfounded concerns about eczema causes and treatments.',url:'https://nationaleczema.org/blog/eczema-mythbusting-misinformation-and-unfounded-concerns/'},
+  {cat:'treatment',title:'New treatment options',desc:'How recent advances in biologics, JAK inhibitors, and other therapies are changing what\'s possible for patients.',url:'https://nationaleczema.org/blog/how-new-treatment-options-are-impacting-eczema-care/'},
+  {cat:'skincare',title:'Bathing & moisturizing guide',desc:'The right way to bathe, what products to use, and how to lock in moisture immediately after — a core part of eczema management.',url:'https://nationaleczema.org/treatments/bathing/'},
+  {cat:'mental',title:'Podcast: mental health is health',desc:'A candid conversation about the emotional toll of chronic skin disease and why mental health care matters as much as skincare.',url:'https://nationaleczema.org/blog/podcast-mental-health-is-health/'},
+  {cat:'diet',title:'Diet & nutrition for eczema',desc:'What the research says about food triggers, anti-inflammatory eating, and how to approach an elimination diet safely.',url:'https://nationaleczema.org/eczema-management/diet-nutrition/'},
+  {cat:'skincare',title:'NEA accepted product directory',desc:'Search and browse products that have earned the NEA Seal of Acceptance — fragrance-free, dye-free, and clinically reviewed.',url:'https://nationaleczema.org/eczema-products/'},
+  {cat:'makeup',title:'How I do my makeup with eczema',desc:'Real tips from someone with eczema — what to look for, what to avoid, and how to prep your skin before applying anything.',url:'https://nationaleczema.org/blog/heres-how-i-do-my-makeup-with-eczema/'},
+  {cat:'skincare',title:'Wet wrap therapy',desc:'Step-by-step instructions for wet wrapping — one of the most effective short-term treatments for severe flares.',url:'https://nationaleczema.org/treatments/wet-wrap-therapy/'},
+  {cat:'clothing',title:'Clothing & eczema triggers',desc:'Which fabrics to wear and avoid, how to manage heat and friction, and dressing strategies for sensitive skin.',url:'https://eczema.org/information-and-advice/triggers-for-eczema/clothing-and-eczema/'},
+];
+const catC={sleep:'badge-blue',treatment:'badge-terra',mental:'badge-pink',diet:'badge-sage',skincare:'badge-terra',makeup:'badge-pink',clothing:'badge-blue'};
+const catN={sleep:'Sleep',treatment:'Treatment',mental:'Mental health',diet:'Diet',skincare:'Skincare',makeup:'Makeup',clothing:'Clothing'};
+const recipes=[
+  {title:'Golden Turmeric Salmon Bowl',time:'25 min',tags:['Gluten-free','Dairy-free'],desc:'Rich in omega-3s and curcumin.',ingredients:['2 salmon fillets','1 tsp turmeric','1 tsp olive oil','1 cup quinoa','1 cup spinach','½ avocado','1 tbsp lemon juice'],steps:['Rub salmon with turmeric, oil, salt, pepper.','Pan-sear 4 min each side.','Arrange quinoa and spinach in bowl. Top with salmon and avocado.','Drizzle with lemon juice.']},
+  {title:'Sweet Potato & Ginger Soup',time:'35 min',tags:['Vegan','Gluten-free'],desc:'Ginger and sweet potato — gentle on the gut and rich in beta-carotene.',ingredients:['3 sweet potatoes, cubed','1 tbsp ginger, grated','1 can coconut milk','3 cups vegetable broth','1 onion','2 garlic cloves','1 tbsp coconut oil'],steps:['Sauté onion and garlic 5 min.','Add sweet potato, ginger, broth. Simmer 20 min.','Blend until smooth.','Stir in coconut milk, season, serve.']},
+  {title:'Blueberry Chia Overnight Oats',time:'5 min + overnight',tags:['Dairy-free','High fibre'],desc:'Blueberries packed with antioxidants; chia seeds provide omega-3s.',ingredients:['½ cup rolled oats','1 tbsp chia seeds','1 cup oat milk','½ cup blueberries','1 tsp maple syrup'],steps:['Mix oats, chia, milk, maple syrup in a jar.','Top with blueberries.','Refrigerate overnight.','Stir before eating.']},
+  {title:'Cucumber Avocado Rice Bowl',time:'15 min',tags:['Vegan','Nut-free'],desc:'Cooling, easy on digestion. Vitamin E from avocado nourishes skin.',ingredients:['1 cup cooked brown rice','½ avocado','½ cucumber','¼ cup edamame','1 tbsp rice vinegar','1 tsp sesame oil'],steps:['Cook rice, let cool.','Arrange in bowl with avocado, cucumber, edamame.','Drizzle with rice vinegar and sesame oil.','Sprinkle sesame seeds.']},
+  {title:'Lemon Herb Baked Chicken',time:'40 min',tags:['Gluten-free','Dairy-free'],desc:'Simple protein with anti-inflammatory herbs. Easy on a flare day.',ingredients:['4 chicken thighs','2 tbsp olive oil','1 lemon, juiced','3 garlic cloves, minced','1 tsp rosemary','1 tsp thyme'],steps:['Preheat oven 400°F.','Mix oil, lemon, garlic, herbs. Coat chicken.','Bake 35–40 min until cooked through.']},
+  {title:'Green Flaxseed Smoothie',time:'5 min',tags:['Vegan','Quick'],desc:'One of the best plant sources of omega-3 ALA.',ingredients:['1 cup spinach','1 frozen banana','1 cup oat milk','1 tbsp ground flaxseed','½ cup mango'],steps:['Add all to blender.','Blend 60 seconds.','Drink immediately.']},
+];
+function renderResources(cat){
+  const c=document.getElementById('res-container');
+  if(cat==='recipes'){
+    c.innerHTML=`<div class="recipe-grid">${recipes.map(r=>`<div class="recipe-card"><h4>${r.title}</h4><div class="recipe-meta">⏱ ${r.time}</div><div class="recipe-tags">${r.tags.map(t=>`<span class="badge badge-sage" style="font-size:10px;">${t}</span>`).join('')}</div><p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">${r.desc}</p><div class="recipe-step-label">Ingredients</div><ul>${r.ingredients.map(i=>`<li>${i}</li>`).join('')}</ul><div class="recipe-step-label">Method</div><ol>${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>`).join('')}</div>`;
+    return;
+  }
+  const list=cat==='all'?resources:resources.filter(r=>r.cat===cat);
+  c.innerHTML=`<div class="res-grid">${list.map(r=>`<div class="res-card"><span class="badge ${catC[r.cat]||'badge-sand'}" style="font-size:10px;">${catN[r.cat]||r.cat}</span><h4>${r.title}</h4><p>${r.desc}</p><a class="res-link" href="${r.url}" target="_blank" rel="noopener">Read article →</a></div>`).join('')}</div>`;
+}
+function filterRes(chip,cat){document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');renderResources(cat);}
+
+// FORUM
+async function loadPosts(topic){
+  const el=document.getElementById('thread-list');el.innerHTML='<div class="loading">Loading…</div>';
+  let q=db.from('posts').select('*').order('created_at',{ascending:false});
+  if(topic)q=q.eq('topic',topic);
+  const {data}=await q;renderPosts(data||[]);
+}
+function renderPosts(posts){
+  const el=document.getElementById('thread-list');
+  if(!posts.length){el.innerHTML='<div class="empty">No threads yet. Be the first to post!</div>';return;}
+  const avC=['background:var(--terra-pale);color:var(--terra);','background:var(--sage-pale);color:var(--sage-dark);','background:#E8EAF6;color:#3949AB;','background:#FCE4EC;color:#C2185B;','background:var(--sand);color:var(--brown-mid);'];
+  el.innerHTML=posts.map((p,i)=>{
+    const own=CU&&p.user_id===CU.id;
+    const rxn=REACTIONS.map(r=>`<button class="reaction-btn" onclick="react('${p.id}','${r.k}',this)">${r.e} <span class="reaction-count" id="rc-${p.id}-${r.k}">0</span></button>`).join('');
+    return `<div class="thread-card" id="th-${p.id}">
+      <div class="thread-top">
+        <div class="avatar" style="${avC[i%avC.length]}">${(p.username||'U').substring(0,2).toUpperCase()}</div>
+        <div style="flex:1;"><div class="thread-author">${p.username||'Anonymous'}</div><div class="thread-time">${ago(p.created_at)}</div></div>
+        ${own?`<div class="own-actions"><button class="own-btn edit-btn" onclick="openEditPost('${p.id}','${esc(p.topic)}','${esc(p.title)}','${esc(p.body)}')">Edit</button><button class="own-btn del-btn" onclick="delPost('${p.id}')">Delete</button></div>`:''}
+      </div>
+      <h4>${p.title}</h4>
+      <p>${p.body.substring(0,200)}${p.body.length>200?'…':''}</p>
+      <div class="reaction-bar">${rxn}</div>
+      <div class="thread-footer">
+        <span class="badge badge-terra">${p.topic||'General'}</span>
+        <span class="thread-stat" onclick="toggleReplies('${p.id}',this)">💬 View replies</span>
+      </div>
+      <div class="replies-section" id="rep-${p.id}">
+        <div id="rep-body-${p.id}"></div>
+        <div class="reply-form"><textarea id="rep-in-${p.id}" placeholder="Write a reply…"></textarea><button class="btn-primary" onclick="saveReply('${p.id}')">Reply</button></div>
+      </div>
+    </div>`;
+  }).join('');
+  posts.forEach(p=>loadRxn(p.id));
+}
+function esc(s){return (s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');}
+function openPostModal(){document.getElementById('edit-post-id').value='';document.getElementById('post-modal-title').textContent='Start a new thread';document.getElementById('post-title').value='';document.getElementById('post-body').value='';openModal('post-modal');}
+function openEditPost(id,topic,title,body){
+  document.getElementById('edit-post-id').value=id;document.getElementById('post-modal-title').textContent='Edit thread';
+  document.getElementById('post-topic').value=topic;document.getElementById('post-title').value=title;document.getElementById('post-body').value=body;
+  openModal('post-modal');
+}
+async function delPost(id){
+  if(!confirm('Delete this post?'))return;
+  await db.from('replies').delete().eq('post_id',id);
+  await db.from('posts').delete().eq('id',id).eq('user_id',CU.id);
+  toast('Post deleted.');loadPosts();
+}
+async function savePost(){
+  const title=document.getElementById('post-title').value.trim(),body=document.getElementById('post-body').value.trim(),eid=document.getElementById('edit-post-id').value;
+  if(!title||!body){toast('Please fill in title and message.');return;}
+  if(eid){await db.from('posts').update({title,body,topic:document.getElementById('post-topic').value}).eq('id',eid).eq('user_id',CU.id);toast('Post updated!');}
+  else{await db.from('posts').insert({user_id:CU.id,username:CUN,title,body,topic:document.getElementById('post-topic').value});toast('Posted! 🌿');}
+  closeModal('post-modal');loadPosts();
+}
+async function react(pid,k,btn){
+  const {data:ex}=await db.from('replies').select('id').eq('post_id',pid).eq('user_id',CU.id).eq('body','__rxn__'+k).limit(1);
+  if(ex&&ex.length)await db.from('replies').delete().eq('id',ex[0].id);
+  else await db.from('replies').insert({post_id:pid,user_id:CU.id,username:CUN,body:'__rxn__'+k});
+  loadRxn(pid);
+}
+async function loadRxn(pid){
+  const {data}=await db.from('replies').select('body,user_id').eq('post_id',pid);
+  if(!data)return;
+  REACTIONS.forEach(r=>{
+    const n=data.filter(d=>d.body==='__rxn__'+r.k).length;
+    const el=document.getElementById(`rc-${pid}-${r.k}`);if(el)el.textContent=n;
+    const btn=el?.closest('.reaction-btn');if(btn)btn.classList.toggle('reacted',data.some(d=>d.body==='__rxn__'+r.k&&d.user_id===CU.id));
+  });
+}
+async function toggleReplies(pid,btn){
+  const s=document.getElementById('rep-'+pid);const open=s.style.display==='block';
+  s.style.display=open?'none':'block';btn.textContent=open?'💬 View replies':'💬 Hide replies';
+  if(!open)await loadReplies(pid);
+}
+async function loadReplies(pid){
+  const el=document.getElementById('rep-body-'+pid);
+  const {data}=await db.from('replies').select('*').eq('post_id',pid).order('created_at');
+  const real=(data||[]).filter(r=>!r.body.startsWith('__rxn__'));
+  if(!real.length){el.innerHTML='<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">No replies yet — be the first!</p>';return;}
+  el.innerHTML=real.map(r=>`<div class="reply-item"><div class="avatar" style="background:var(--sand);color:var(--brown-mid);font-size:11px;width:28px;height:28px;flex-shrink:0;">${(r.username||'U').substring(0,2).toUpperCase()}</div><div class="reply-body"><div class="reply-meta"><strong>${r.username||'Anonymous'}</strong> · ${ago(r.created_at)}</div><div class="reply-text">${r.body}</div></div></div>`).join('');
+}
+async function saveReply(pid){
+  const inp=document.getElementById('rep-in-'+pid);const body=inp.value.trim();if(!body)return;
+  await db.from('replies').insert({post_id:pid,user_id:CU.id,username:CUN,body});
+  inp.value='';toast('Reply posted! 💬');await loadReplies(pid);
+}
+function ago(ts){const d=(Date.now()-new Date(ts).getTime())/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+' min ago';if(d<86400)return Math.floor(d/3600)+' hr ago';return Math.floor(d/86400)+' days ago';}
+
+init();
+</script>
+</body>
+</html>
