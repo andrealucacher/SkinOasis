@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SkinOasis — Eczema & Skin Health Community</title>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#1C1208;--bark:#2E1A0A;--bark-mid:#4A2E14;--bark-light:#7A5030;
+  --terra:#B85425;--terra-light:#D4784A;--terra-pale:#F0D5C4;--terra-wash:#FAF0E8;
+  --sage:#3D5C32;--sage-mid:#5A7A4A;--sage-light:#8AAA78;--sage-pale:#E2EED8;
+  --oat:#F7F0E4;--oat-dark:#EBE0CC;--oat-border:#D8CCBA;
+  --linen:#FBF7F0;--charcoal:#1A1208;--charcoal-mid:#241810;
+  --danger:#C0392B;
+  --page-l:#EDE0C4;--page-r:#FAF3E2;--page-line-l:#CCBA96;--page-line-r:#DDD0B2;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--charcoal);color:var(--oat);}
+
+/* ── AUTH ── */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bark);position:relative;overflow:hidden;}
+#auth-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(184,84,37,.4) 0%,transparent 60%),radial-gradient(ellipse at 80% 70%,rgba(61,92,50,.3) 0%,transparent 50%);}
+.auth-card{position:relative;z-index:1;background:var(--linen);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.5);}
+.auth-logo{font-family:'Lora',serif;font-size:32px;color:var(--terra);text-align:center;margin-bottom:4px;}
+.auth-logo span{color:var(--sage-mid);}
+.auth-tagline{text-align:center;font-size:13px;color:var(--bark-light);margin-bottom:1.5rem;}
+.auth-tabs{display:flex;margin-bottom:1.25rem;border:1px solid var(--oat-border);border-radius:10px;overflow:hidden;}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:13px;cursor:pointer;background:var(--oat);color:var(--bark-light);transition:all .15s;}
+.auth-tab.active{background:var(--terra);color:white;}
+.form-group{margin-bottom:.9rem;}
+.form-group label{display:block;font-size:12px;color:var(--bark-light);margin-bottom:4px;}
+.form-group input{width:100%;padding:10px 12px;border:1px solid var(--oat-border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;background:white;color:var(--ink);}
+.form-group input:focus{outline:none;border-color:var(--terra);}
+.auth-btn{width:100%;padding:11px;background:var(--terra);color:white;border:none;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:.5rem;}
+.auth-btn:hover{background:var(--bark-mid);}
+.google-btn{width:100%;padding:10px;background:white;color:#333;border:1px solid var(--oat-border);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.google-btn:hover{background:var(--oat);}
+.divider{display:flex;align-items:center;gap:10px;margin:.75rem 0;font-size:12px;color:var(--bark-light);}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--oat-border);}
+.auth-msg{font-size:12px;text-align:center;margin-top:.75rem;min-height:18px;}
+.auth-msg.error{color:var(--danger);}
+.auth-msg.success{color:var(--sage-mid);}
+
+/* ── APP SHELL ── */
+#app{display:none;flex-direction:column;min-height:100vh;}
+nav{background:var(--charcoal-mid);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.06);}
+.logo{font-family:'Lora',serif;font-size:22px;color:var(--terra-pale);}
+.logo span{color:var(--sage-light);}
+.nav-right{display:flex;align-items:center;gap:.75rem;}
+.nav-user{font-size:13px;color:rgba(235,215,185,.6);}
+.nav-btn{background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(235,215,185,.7);padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.nav-btn:hover{background:rgba(255,255,255,.08);color:rgba(235,215,185,1);}
+.tabs{display:flex;background:var(--bark);border-bottom:1px solid rgba(255,255,255,.06);padding:0 2rem;}
+.tab{padding:13px 18px;font-size:13px;color:rgba(235,215,185,.45);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--terra-light);border-bottom-color:var(--terra);}
+.tab:hover:not(.active){color:rgba(235,215,185,.75);}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── SHARED ── */
+.btn-primary{background:var(--terra);color:white;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.btn-primary:hover{background:var(--bark-mid);}
+.btn-secondary{background:var(--oat);color:var(--bark-mid);border:1px solid var(--oat-border);padding:8px 16px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:var(--bark-light);margin-bottom:4px;letter-spacing:.3px;text-transform:uppercase;}
+.input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--oat-border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:white;color:var(--ink);}
+.input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terra);}
+textarea{resize:vertical;min-height:70px;}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;}
+.badge-terra{background:var(--terra-pale);color:var(--terra);}
+.badge-sage{background:var(--sage-pale);color:var(--sage);}
+.badge-sand{background:var(--oat);color:var(--bark-light);}
+.badge-blue{background:#E8EAF6;color:#3949AB;}
+.badge-pink{background:#FCE4EC;color:#C2185B;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--linen);border-radius:16px;padding:1.75rem;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-family:'Lora',serif;font-size:20px;color:var(--bark);margin-bottom:1.25rem;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+#toast{position:fixed;bottom:2rem;right:2rem;background:var(--bark);color:var(--oat);padding:10px 18px;border-radius:10px;font-size:13px;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;}
+#toast.show{transform:translateY(0);opacity:1;}
+.loading{text-align:center;padding:2rem;color:var(--bark-light);font-size:14px;}
+.empty{text-align:center;padding:2rem;color:var(--bark-light);font-size:14px;}
+
+/* ── JOURNAL ── */
+#s0{background:var(--charcoal);min-height:calc(100vh - 110px);padding:1.5rem 1rem;}
+.book-outer{max-width:960px;margin:0 auto;}
+.book-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.bnav-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(235,215,185,.5);padding:6px 16px;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;}
+.bnav-btn:hover:not(:disabled){background:rgba(255,255,255,.1);color:rgba(235,215,185,.9);border-color:rgba(255,255,255,.2);}
+.bnav-btn:disabled{opacity:.25;cursor:default;}
+.bnav-center{position:relative;text-align:center;}
+.bnav-date{font-family:'Kalam',cursive;font-size:16px;color:rgba(235,215,185,.5);cursor:pointer;padding:4px 12px;border-radius:8px;border:1px solid transparent;transition:all .15s;}
+.bnav-date:hover{border-color:rgba(255,255,255,.1);color:rgba(235,215,185,.8);}
+.date-popup{position:absolute;top:36px;left:50%;transform:translateX(-50%);background:#2A1C0E;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1rem;z-index:50;display:none;box-shadow:0 8px 32px rgba(0,0,0,.7);}
+.date-popup.open{display:block;}
+.date-popup input[type=date]{background:#1A1208;color:var(--oat);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 12px;font-size:14px;font-family:'DM Sans',sans-serif;}
+.date-popup input[type=date]:focus{outline:none;border-color:var(--terra);}
+
+.book{display:grid;grid-template-columns:5fr 7fr;border-radius:3px 14px 14px 3px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.7),-4px 0 24px rgba(0,0,0,.5);}
+.book::after{content:'';position:absolute;top:0;bottom:0;width:20px;background:linear-gradient(to right,rgba(0,0,0,.5) 0%,rgba(0,0,0,.08) 45%,rgba(0,0,0,.08) 55%,rgba(0,0,0,.35) 100%);pointer-events:none;z-index:10;left:calc(100% * 5 / 12 - 10px);}
+
+/* LEFT PAGE */
+.page-l{background:var(--page-l);padding:1.5rem 1.5rem 1.5rem 1.75rem;min-height:680px;position:relative;background-image:repeating-linear-gradient(transparent,transparent 31px,var(--page-line-l) 32px);background-position:0 52px;}
+.page-l::after{content:'';position:absolute;bottom:0;right:0;width:18px;height:18px;background:linear-gradient(135deg,#DDCBA4 50%,#B8A070 50%);}
+
+/* RIGHT PAGE */
+.page-r{background:var(--page-r);padding:1.75rem 2rem 1.75rem 1.75rem;min-height:680px;position:relative;background-image:repeating-linear-gradient(transparent,transparent 31px,var(--page-line-r) 32px);background-position:0 56px;}
+
+.pg-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.1rem;padding-bottom:.6rem;border-bottom:1.5px solid rgba(140,90,30,.2);}
+.pg-date{font-family:'Kalam',cursive;font-size:15px;color:#4A2E10;}
+.pg-date.today{font-size:20px;color:#2E1A08;}
+.pg-tag{font-family:'Kalam',cursive;font-size:12px;color:#A07840;padding:2px 8px;border-radius:20px;border:1px solid rgba(160,100,40,.25);background:rgba(160,100,40,.08);}
+.pg-tag.today-tag{background:rgba(184,84,37,.12);border-color:rgba(184,84,37,.3);color:#B04020;}
+.edit-badge{font-size:10px;font-family:'DM Sans',sans-serif;color:#A07840;background:rgba(160,100,40,.1);border:1px solid rgba(160,100,40,.2);border-radius:20px;padding:2px 8px;cursor:pointer;transition:all .15s;}
+.edit-badge:hover{background:rgba(160,100,40,.22);color:#7A5820;}
+
+.j-sec{margin-bottom:1.1rem;}
+.j-lbl{font-family:'Kalam',cursive;font-size:12px;color:var(--terra);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;font-weight:700;}
+.j-lbl.left-lbl{color:#9A6830;}
+
+.meal-line{display:flex;align-items:baseline;gap:6px;padding:3px 0;border-bottom:1px solid rgba(140,90,30,.1);}
+.mbullet{width:5px;height:5px;border-radius:50%;background:var(--terra);flex-shrink:0;margin-top:6px;}
+.mbullet.old{background:#9A7840;}
+.mtext{font-family:'Kalam',cursive;font-size:14px;color:#3A2010;line-height:1.4;flex:1;}
+.mtext.old{font-size:13px;color:#6A4820;}
+.mal{font-size:9px;padding:1px 6px;border-radius:20px;background:rgba(184,84,37,.1);border:1px solid rgba(184,84,37,.25);color:#A04020;font-family:'DM Sans',sans-serif;white-space:nowrap;margin-left:2px;}
+.add-line{font-family:'Kalam',cursive;font-size:13px;color:#B09060;font-style:italic;padding:4px 0;cursor:pointer;display:flex;align-items:center;gap:4px;}
+.add-line:hover{color:var(--terra);}
+
+.sym-row{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+.sym-name{font-family:'Kalam',cursive;font-size:13px;color:#3A2010;width:90px;flex-shrink:0;}
+.sym-name.sm{font-size:12px;width:80px;color:#5A3A18;}
+.sym-dots{display:flex;gap:2px;}
+.sdot{width:12px;height:12px;border-radius:50%;background:#CCBA96;border:1px solid #B8A678;cursor:pointer;transition:all .1s;}
+.sdot.on{background:var(--terra);border-color:#9A4018;}
+.sdot.on.sage{background:var(--sage-mid);border-color:var(--sage);}
+.sdot.sm{width:10px;height:10px;}
+.sym-val{font-family:'Kalam',cursive;font-size:15px;color:var(--terra);width:16px;text-align:right;}
+.sym-val.sm{font-size:13px;color:#9A6830;}
+
+.sleep-grid{display:grid;gap:6px;margin-bottom:8px;}
+.sleep-grid.three{grid-template-columns:repeat(3,1fr);}
+.sleep-grid.two{grid-template-columns:repeat(2,1fr);}
+.sleep-item{background:rgba(140,90,30,.07);border-radius:8px;padding:6px 8px;border:1px solid rgba(140,90,30,.12);}
+.sleep-item-label{font-family:'Kalam',cursive;font-size:11px;color:#9A7840;margin-bottom:2px;}
+.sleep-item-val{font-family:'Kalam',cursive;font-size:14px;color:#3A2010;}
+.sleep-item-val.ph{color:#B09870;font-style:italic;font-size:12px;}
+.sleep-q-row{display:flex;gap:4px;margin-top:4px;}
+.sq{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;border:1.5px solid rgba(140,90,30,.15);background:rgba(255,255,255,.35);cursor:pointer;transition:all .1s;}
+.sq.sel{background:rgba(184,84,37,.15);border-color:var(--terra);}
+.sleep-qlabel{font-family:'Kalam',cursive;font-size:11px;color:#9A7840;margin-bottom:4px;}
+
+.mood-row{display:flex;gap:3px;flex-wrap:wrap;}
+.mc{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:1.5px solid rgba(140,90,30,.15);background:rgba(255,255,255,.35);cursor:pointer;transition:all .1s;}
+.mc.sm{width:22px;height:22px;font-size:11px;}
+.mc.sel{background:rgba(184,84,37,.15);border-color:var(--terra);}
+
+.zone-list{display:flex;flex-direction:column;gap:3px;}
+.zone-item{font-family:'Kalam',cursive;font-size:13px;color:#3A2010;display:flex;align-items:center;gap:5px;}
+.zone-item::before{content:'◆';font-size:7px;color:var(--terra);}
+.zone-ph{font-family:'Kalam',cursive;font-size:12px;color:#B09870;font-style:italic;}
+
+.note-text{font-family:'Kalam',cursive;font-size:14px;color:#3A2010;line-height:2;white-space:pre-wrap;}
+.note-text.old{font-size:13px;color:#6A4820;}
+.note-ph{font-family:'Kalam',cursive;font-size:13px;color:#B09870;font-style:italic;line-height:2;}
+
+.pgnum{position:absolute;bottom:12px;font-family:'Kalam',cursive;font-size:11px;color:#A08860;}
+.pgnum.l{right:14px;}
+.pgnum.r{left:14px;}
+
+.j-save-bar{display:flex;justify-content:flex-end;gap:8px;margin-top:1rem;}
+.j-save-btn{background:var(--terra);color:white;border:none;padding:9px 22px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.j-save-btn:hover{background:var(--bark-mid);}
+.j-discard-btn{background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(235,215,185,.4);padding:9px 14px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+
+/* allergen grid in modal */
+.allergen-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;}
+.al-btn{padding:6px 4px;border-radius:8px;border:1px solid var(--oat-border);background:white;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--bark-light);text-align:center;transition:all .12s;}
+.al-btn.sel{background:var(--terra-pale);border-color:var(--terra);color:var(--terra);font-weight:500;}
+
+/* ── RESOURCES ── */
+#s1{background:var(--oat);min-height:calc(100vh - 110px);padding:2rem;}
+.res-wrap{max-width:1000px;margin:0 auto;}
+.page-header{margin-bottom:1.5rem;}
+.page-header h2{font-family:'Lora',serif;font-size:26px;color:var(--bark);margin-bottom:4px;}
+.page-header p{font-size:13px;color:var(--bark-light);}
+.filter-row{display:flex;gap:7px;margin-bottom:1.5rem;flex-wrap:wrap;}
+.filter-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--oat-border);background:white;font-size:12px;color:var(--bark-light);cursor:pointer;transition:all .15s;}
+.filter-chip.active{background:var(--terra);border-color:var(--terra);color:white;}
+.res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.res-card{background:white;border-radius:12px;border:1px solid var(--oat-border);padding:16px;display:flex;flex-direction:column;}
+.res-card h4{font-family:'Lora',serif;font-size:15px;color:var(--bark);margin:6px 0;line-height:1.4;}
+.res-card p{font-size:12px;color:var(--bark-light);line-height:1.5;flex:1;margin-bottom:12px;}
+.res-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--terra);text-decoration:none;font-weight:500;padding:6px 12px;border-radius:8px;background:var(--terra-pale);border:1px solid rgba(184,84,37,.2);transition:all .15s;width:fit-content;}
+.res-link:hover{background:var(--terra);color:white;}
+.recipe-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;}
+.recipe-card{background:white;border-radius:12px;border:1px solid var(--oat-border);padding:16px;}
+.recipe-card h4{font-family:'Lora',serif;font-size:15px;color:var(--bark);margin-bottom:4px;}
+.recipe-meta{font-size:11px;color:var(--bark-light);margin-bottom:8px;}
+.recipe-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;}
+.recipe-step-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--bark-light);margin:8px 0 4px;}
+.recipe-card ul,.recipe-card ol{padding-left:16px;font-size:12px;color:var(--bark-light);line-height:1.7;}
+
+/* ── COMMUNITY ── */
+#s2{background:var(--linen);min-height:calc(100vh - 110px);padding:2rem;}
+.comm-wrap{max-width:1000px;margin:0 auto;}
+.forum-layout{display:grid;grid-template-columns:1fr 250px;gap:1.25rem;}
+.thread-list{display:flex;flex-direction:column;gap:10px;}
+.thread-card{background:white;border-radius:12px;border:1px solid var(--oat-border);padding:14px;}
+.thread-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.thread-author{font-size:13px;color:var(--bark);font-weight:500;}
+.thread-time{font-size:11px;color:var(--bark-light);}
+.thread-card h4{font-size:14px;color:var(--ink);margin-bottom:6px;line-height:1.4;}
+.thread-card p{font-size:12px;color:var(--bark-light);line-height:1.5;margin-bottom:10px;}
+.thread-footer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.thread-stat{font-size:11px;color:var(--bark-light);margin-left:auto;cursor:pointer;}
+.own-actions{display:flex;gap:6px;}
+.own-btn{background:none;border:none;font-size:11px;cursor:pointer;padding:3px 8px;border-radius:6px;font-family:'DM Sans',sans-serif;}
+.own-btn.edit-btn{color:var(--sage);background:var(--sage-pale);}
+.own-btn.del-btn{color:var(--danger);background:#FDECEA;}
+.reaction-bar{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.reaction-btn{background:var(--oat);border:1px solid var(--oat-border);border-radius:20px;padding:3px 9px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;font-family:'DM Sans',sans-serif;transition:all .12s;}
+.reaction-btn:hover{background:var(--terra-pale);}
+.reaction-btn.reacted{background:var(--terra-pale);border-color:var(--terra-light);}
+.reaction-count{font-size:11px;color:var(--bark-light);}
+.replies-section{margin-top:12px;border-top:1px solid var(--oat-border);padding-top:12px;display:none;}
+.reply-item{display:flex;gap:10px;margin-bottom:10px;}
+.reply-body{flex:1;background:var(--oat);border-radius:10px;padding:10px 12px;font-size:13px;}
+.reply-meta{font-size:11px;color:var(--bark-light);margin-bottom:4px;}
+.reply-text{color:var(--ink);line-height:1.5;}
+.reply-form{display:flex;gap:8px;margin-top:8px;}
+.reply-form textarea{flex:1;min-height:50px;font-size:13px;}
+.sidebar-card{background:white;border-radius:12px;border:1px solid var(--oat-border);padding:14px;margin-bottom:1rem;}
+.sidebar-card h4{font-size:13px;color:var(--bark);font-weight:500;margin-bottom:10px;}
+.topic-list{list-style:none;}
+.topic-list li{font-size:12px;color:var(--bark-light);padding:5px 0;border-bottom:.5px solid var(--oat-border);cursor:pointer;transition:color .12s;}
+.topic-list li:last-child{border-bottom:none;}
+.topic-list li:hover{color:var(--terra);}
+
+/* ── ACCOUNT ── */
+#s3{background:var(--oat);min-height:calc(100vh - 110px);padding:2rem;}
+.account-wrap{max-width:520px;margin:0 auto;}
+.account-card{background:white;border-radius:14px;border:1px solid var(--oat-border);padding:1.5rem;margin-bottom:1rem;}
+.account-card h3{font-family:'Lora',serif;font-size:17px;color:var(--bark);margin-bottom:1rem;}
+
+@media(max-width:700px){
+  .res-grid,.forum-layout,.recipe-grid{grid-template-columns:1fr;}
+  .book{grid-template-columns:1fr;}
+  .page-l{display:none;}
+  #s1,#s2,#s3{padding:1rem;}
+  .allergen-grid{grid-template-columns:repeat(3,1fr);}
+  #s0{padding:.75rem .5rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Skin<span>Oasis</span></div>
+    <div class="auth-tagline">Your eczema & skin health companion</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuth('login')">Sign in</div>
+      <div class="auth-tab" onclick="switchAuth('signup')">Create account</div>
+    </div>
+    <div id="login-form">
+      <button class="google-btn" onclick="doGoogle()"><svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>Continue with Google</button>
+      <div class="divider">or</div>
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
+      <button class="auth-btn" onclick="doLogin()">Sign in</button>
+      <div style="text-align:center;margin-top:10px;"><span onclick="switchAuth('reset')" style="font-size:12px;color:var(--terra);cursor:pointer;text-decoration:underline;">Forgot your password?</span></div>
+    </div>
+    <div id="signup-form" style="display:none;">
+      <button class="google-btn" onclick="doGoogle()"><svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/></svg>Sign up with Google</button>
+      <div class="divider">or</div>
+      <div class="form-group"><label>Username</label><input type="text" id="signup-name" placeholder="e.g. SkinWarrior2024"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="signup-pass" placeholder="at least 6 characters"/></div>
+      <button class="auth-btn" onclick="doSignup()">Create account</button>
+    </div>
+    <div id="reset-form" style="display:none;">
+      <p style="font-size:13px;color:var(--bark-light);margin-bottom:1rem;line-height:1.5;">Enter your email and we'll send you a link to reset your password.</p>
+      <div class="form-group"><label>Email</label><input type="email" id="reset-email" placeholder="you@example.com"/></div>
+      <button class="auth-btn" onclick="doReset()">Send reset link</button>
+      <div style="text-align:center;margin-top:10px;"><span onclick="switchAuth('login')" style="font-size:12px;color:var(--terra);cursor:pointer;text-decoration:underline;">Back to sign in</span></div>
+    </div>
+    <div id="newpass-form" style="display:none;">
+      <p style="font-size:13px;color:var(--bark-light);margin-bottom:1rem;line-height:1.5;">Choose a new password for your account.</p>
+      <div class="form-group"><label>New password</label><input type="password" id="newpass1" placeholder="at least 6 characters"/></div>
+      <div class="form-group"><label>Confirm new password</label><input type="password" id="newpass2" placeholder="repeat your new password"/></div>
+      <button class="auth-btn" onclick="doSetNewPassword()">Set new password</button>
+    </div>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav>
+    <div class="logo">Skin<span>Oasis</span></div>
+    <div class="nav-right">
+      <span class="nav-user" id="nav-username"></span>
+      <button class="nav-btn" onclick="showTab(3)">⚙ Account</button>
+      <button class="nav-btn" onclick="doSignout()">Sign out</button>
+    </div>
+  </nav>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(0)">📓 Journal</div>
+    <div class="tab" onclick="showTab(1)">📋 Resources</div>
+    <div class="tab" onclick="showTab(2)">💬 Community</div>
+    <div class="tab" onclick="showTab(3)">⚙ Account</div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div class="section active" id="s0">
+    <div class="book-outer">
+      <div class="book-nav">
+        <button class="bnav-btn" id="j-prev" onclick="jGoPrev()">‹ Previous day</button>
+        <div class="bnav-center">
+          <div class="bnav-date" id="j-date-display" onclick="toggleDatePopup()">Loading…</div>
+          <div style="font-size:11px;color:rgba(235,215,185,.3);margin-top:2px;font-family:'Kalam',cursive;">tap to jump to any date</div>
+          <div class="date-popup" id="date-popup">
+            <input type="date" id="date-input" onchange="jGoDate(this.value)"/>
+          </div>
+        </div>
+        <button class="bnav-btn" id="j-next" onclick="jGoNext()">Next day ›</button>
+      </div>
+
+      <div class="book">
+        <!-- LEFT PAGE: previous day -->
+        <div class="page-l" id="page-left">
+          <div class="pg-header">
+            <div class="pg-date" id="left-date">—</div>
+            <span class="edit-badge" onclick="openLeftEdit()">✏ Edit</span>
+          </div>
+          <div id="left-content"><div class="loading" style="color:#9A7840;">Loading…</div></div>
+          <div class="pgnum l" id="left-pgnum">—</div>
+        </div>
+
+        <!-- RIGHT PAGE: selected day -->
+        <div class="page-r" id="page-right">
+          <div class="pg-header">
+            <div class="pg-date today" id="right-date">—</div>
+            <span class="pg-tag today-tag" id="right-tag">Today</span>
+          </div>
+
+          <div class="j-sec">
+            <div class="j-lbl">What I ate</div>
+            <div id="r-meal-list"></div>
+            <div class="add-line" onclick="openModal('meal-modal')">＋ add a meal…</div>
+          </div>
+
+          <div class="j-sec">
+            <div class="j-lbl">Symptoms</div>
+            <div class="sym-row"><div class="sym-name">Itchiness</div><div class="sym-dots" id="d-itch"></div><div class="sym-val" id="v-itch">5</div></div>
+            <div class="sym-row"><div class="sym-name">Stomach pain</div><div class="sym-dots" id="d-stomach"></div><div class="sym-val" id="v-stomach">5</div></div>
+            <div class="sym-row"><div class="sym-name">Skin flares</div><div class="sym-dots" id="d-flare"></div><div class="sym-val" id="v-flare">5</div></div>
+          </div>
+
+          <div class="j-sec">
+            <div class="j-lbl">Sleep last night</div>
+            <div class="sleep-grid three" style="margin-bottom:8px;">
+              <div class="sleep-item"><div class="sleep-item-label">Hours slept</div><input id="sl-hours" type="text" placeholder="e.g. 7" style="background:transparent;border:none;font-family:'Kalam',cursive;font-size:14px;color:#3A2010;width:100%;outline:none;" /></div>
+              <div class="sleep-item"><div class="sleep-item-label">Woke up</div><input id="sl-woke" type="text" placeholder="0× / itching" style="background:transparent;border:none;font-family:'Kalam',cursive;font-size:14px;color:#3A2010;width:100%;outline:none;" /></div>
+              <div class="sleep-item"><div class="sleep-item-label">Scratching?</div><input id="sl-scratch" type="text" placeholder="Yes / No" style="background:transparent;border:none;font-family:'Kalam',cursive;font-size:14px;color:#3A2010;width:100%;outline:none;" /></div>
+            </div>
+            <div class="sleep-qlabel">Sleep quality</div>
+            <div class="sleep-q-row" id="sleep-q-row">
+              <div class="sq" data-val="1" onclick="pickSleepQ(this)">😴</div>
+              <div class="sq" data-val="2" onclick="pickSleepQ(this)">😪</div>
+              <div class="sq" data-val="3" onclick="pickSleepQ(this)">😐</div>
+              <div class="sq" data-val="4" onclick="pickSleepQ(this)">🙂</div>
+              <div class="sq" data-val="5" onclick="pickSleepQ(this)">😊</div>
+            </div>
+          </div>
+
+          <div class="j-sec">
+            <div class="j-lbl">Mood</div>
+            <div class="mood-row" id="mood-row">
+              <div class="mc" data-val="1" data-label="Terrible" onclick="pickMood(this)">😭</div>
+              <div class="mc" data-val="2" data-label="Really bad" onclick="pickMood(this)">😢</div>
+              <div class="mc" data-val="3" data-label="Bad" onclick="pickMood(this)">😔</div>
+              <div class="mc" data-val="4" data-label="Low" onclick="pickMood(this)">😟</div>
+              <div class="mc" data-val="5" data-label="Neutral" onclick="pickMood(this)">😐</div>
+              <div class="mc" data-val="6" data-label="Okay" onclick="pickMood(this)">🙂</div>
+              <div class="mc" data-val="7" data-label="Good" onclick="pickMood(this)">😊</div>
+              <div class="mc" data-val="8" data-label="Great" onclick="pickMood(this)">😄</div>
+              <div class="mc" data-val="9" data-label="Really good" onclick="pickMood(this)">😁</div>
+              <div class="mc" data-val="10" data-label="Amazing!" onclick="pickMood(this)">🤩</div>
+            </div>
+            <div style="font-family:'Kalam',cursive;font-size:12px;color:#B09870;margin-top:4px;min-height:16px;" id="mood-label"></div>
+          </div>
+
+          <div class="j-sec">
+            <div class="j-lbl">Flare areas</div>
+            <div style="display:flex;gap:1rem;align-items:flex-start;">
+              <svg width="120" height="240" viewBox="0 0 160 300" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+                <ellipse class="body-zone" data-zone="Head" cx="80" cy="24" rx="22" ry="22" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Neck" x="73" y="46" width="14" height="14" rx="4" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Left shoulder" cx="44" cy="70" rx="16" ry="10" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Right shoulder" cx="116" cy="70" rx="16" ry="10" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Chest" x="56" y="62" width="48" height="34" rx="6" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Abdomen" x="58" y="98" width="44" height="32" rx="6" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Left upper arm" x="24" y="68" width="16" height="32" rx="6" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Right upper arm" x="120" y="68" width="16" height="32" rx="6" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Left elbow" cx="32" cy="106" rx="9" ry="8" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Right elbow" cx="128" cy="106" rx="9" ry="8" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Left forearm" x="24" y="116" width="14" height="28" rx="5" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Right forearm" x="122" y="116" width="14" height="28" rx="5" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Left hand" cx="31" cy="155" rx="10" ry="12" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Right hand" cx="129" cy="155" rx="10" ry="12" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Left thigh" x="58" y="132" width="20" height="44" rx="6" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Right thigh" x="82" y="132" width="20" height="44" rx="6" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Left knee" cx="68" cy="182" rx="10" ry="8" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Right knee" cx="92" cy="182" rx="10" ry="8" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Left shin" x="60" y="192" width="16" height="46" rx="5" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <rect class="body-zone" data-zone="Right shin" x="84" y="192" width="16" height="46" rx="5" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Left foot" cx="66" cy="246" rx="13" ry="8" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+                <ellipse class="body-zone" data-zone="Right foot" cx="94" cy="246" rx="13" ry="8" style="fill:rgba(139,90,30,.08);stroke:#C4AA80;stroke-width:1;cursor:pointer;"/>
+              </svg>
+              <div style="flex:1;">
+                <div style="font-family:'Kalam',cursive;font-size:11px;color:#9A7840;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Areas selected</div>
+                <div class="zone-list" id="zone-list"><div class="zone-ph">Tap body areas to mark flares</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="j-sec">
+            <div class="j-lbl">Notes</div>
+            <textarea id="j-notes" style="background:transparent;border:none;border-bottom:1px solid rgba(140,90,30,.15);border-radius:0;font-family:'Kalam',cursive;font-size:14px;color:#3A2010;width:100%;min-height:70px;outline:none;resize:none;padding:4px 0;line-height:2;" placeholder="Write anything here…"></textarea>
+          </div>
+          <div class="pgnum r" id="right-pgnum">—</div>
+        </div>
+      </div>
+
+      <div class="j-save-bar">
+        <button class="j-discard-btn" onclick="loadJournalEntry()">Discard</button>
+        <button class="j-save-btn" onclick="saveJournalEntry()">Save entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESOURCES -->
+  <div class="section" id="s1">
+    <div class="res-wrap">
+      <div class="page-header"><h2>Resources</h2><p>Trusted guidance from the National Eczema Association, plus anti-inflammatory recipes.</p></div>
+      <div class="filter-row">
+        <div class="filter-chip active" onclick="filterRes(this,'all')">All</div>
+        <div class="filter-chip" onclick="filterRes(this,'sleep')">Sleep</div>
+        <div class="filter-chip" onclick="filterRes(this,'treatment')">Treatment</div>
+        <div class="filter-chip" onclick="filterRes(this,'mental')">Mental health</div>
+        <div class="filter-chip" onclick="filterRes(this,'diet')">Diet</div>
+        <div class="filter-chip" onclick="filterRes(this,'skincare')">Skincare</div>
+        <div class="filter-chip" onclick="filterRes(this,'makeup')">Makeup</div>
+        <div class="filter-chip" onclick="filterRes(this,'clothing')">Clothing</div>
+        <div class="filter-chip" onclick="filterRes(this,'recipes')">🥗 Recipes</div>
+      </div>
+      <div id="res-container"></div>
+    </div>
+  </div>
+
+  <!-- COMMUNITY -->
+  <div class="section" id="s2">
+    <div class="comm-wrap">
+      <div class="page-header"><h2>Community Forum</h2><p>You are not alone — connect with others who truly understand.</p></div>
+      <div class="forum-layout">
+        <div>
+          <button class="btn-primary" style="width:100%;margin-bottom:1rem;" onclick="openPostModal()">+ Start a new thread</button>
+          <div class="thread-list" id="thread-list"><div class="loading">Loading…</div></div>
+        </div>
+        <div>
+          <div class="sidebar-card">
+            <h4>Browse topics</h4>
+            <ul class="topic-list">
+              <li onclick="loadPosts('Skincare')">Skincare routines</li>
+              <li onclick="loadPosts('Diet')">Diet & food triggers</li>
+              <li onclick="loadPosts('Mental health')">Mental health</li>
+              <li onclick="loadPosts('Children')">Children & family</li>
+              <li onclick="loadPosts('Treatments')">Treatments</li>
+              <li onclick="loadPosts('Success')">Success stories</li>
+              <li onclick="loadPosts(null)">Show all</li>
+            </ul>
+          </div>
+          <div class="sidebar-card" style="background:var(--terra-pale);border-color:rgba(184,84,37,.25);">
+            <h4 style="color:var(--terra);font-family:'Lora',serif;">You are not alone.</h4>
+            <p style="font-size:12px;color:var(--bark-mid);line-height:1.6;margin-top:4px;">Over 31 million people in the US live with eczema. This community exists so none of them have to figure it out alone.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div class="section" id="s3">
+    <div class="account-wrap">
+      <div class="page-header"><h2>My Account</h2><p>Manage your profile and password.</p></div>
+      <div class="account-card">
+        <h3>Profile</h3>
+        <div class="field"><label>Username</label><input class="input" id="acc-username" placeholder="Your display name"/></div>
+        <div class="field"><label>Email</label><input class="input" id="acc-email" disabled style="opacity:.5;cursor:not-allowed;"/></div>
+        <button class="btn-primary" onclick="saveProfile()">Save profile</button>
+        <div id="profile-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
+      </div>
+      <div class="account-card">
+        <h3>Change password</h3>
+        <p style="font-size:13px;color:var(--bark-light);margin-bottom:1rem;line-height:1.5;">Set a new password for your account. You can use this even if you signed in with Google.</p>
+        <div class="field"><label>New password</label><input type="password" class="input" id="acc-pass1" placeholder="at least 6 characters"/></div>
+        <div class="field"><label>Confirm new password</label><input type="password" class="input" id="acc-pass2" placeholder="repeat your new password"/></div>
+        <button class="btn-primary" onclick="changePassword()">Update password</button>
+        <div id="pass-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="meal-modal">
+  <div class="modal">
+    <h3>Add a meal</h3>
+    <div class="field"><label>Meal type</label><select id="m-type"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div>
+    <div class="field"><label>What did you eat?</label><textarea id="m-foods" placeholder="e.g. Oat porridge, blueberries, almond milk…"></textarea></div>
+    <div class="field">
+      <label>Allergens — tap all that apply</label>
+      <div class="allergen-grid">
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌾 Gluten</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🥛 Dairy</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🥜 Peanuts</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌰 Tree nuts</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🥚 Eggs</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🐟 Fish</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🦐 Shellfish</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🫘 Soy</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌽 Corn</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🍅 Nightshades</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🌻 Seeds</button>
+        <button class="al-btn" onclick="this.classList.toggle('sel')">🧄 Alliums</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('meal-modal')">Cancel</button>
+      <button class="btn-primary" onclick="addMeal()">Add meal</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="left-edit-modal">
+  <div class="modal">
+    <h3 id="left-edit-title">Edit previous day</h3>
+    <div class="field"><label>Notes / late additions</label><textarea id="left-edit-notes" style="min-height:100px;" placeholder="Late night flare, scratching at 3am, anything you want to add…"></textarea></div>
+    <div class="field"><label>Sleep hours</label><input class="input" id="left-edit-sleep-hours" placeholder="e.g. 6.5"/></div>
+    <div class="field"><label>Times woken up</label><input class="input" id="left-edit-sleep-woke" placeholder="e.g. 2× itching"/></div>
+    <div class="field"><label>Scratching?</label><input class="input" id="left-edit-sleep-scratch" placeholder="Yes / No"/></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('left-edit-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveLeftEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="post-modal">
+  <div class="modal">
+    <h3 id="post-modal-title">Start a new thread</h3>
+    <input type="hidden" id="edit-post-id"/>
+    <div class="field"><label>Topic</label><select id="post-topic"><option>Skincare</option><option>Diet</option><option>Mental health</option><option>Children</option><option>Treatments</option><option>Success</option><option>General</option></select></div>
+    <div class="field"><label>Title</label><input class="input" id="post-title" placeholder="What's on your mind?"/></div>
+    <div class="field"><label>Your message</label><textarea id="post-body" style="min-height:120px;" placeholder="Share your experience, question, or story…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('post-modal')">Cancel</button>
+      <button class="btn-primary" onclick="savePost()">Post</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SURL='https://tregladzmrshhwdeiatr.supabase.co';
+const SKEY='sb_publishable_Ps2WyfdfwXCqeFd8QxLlFA_sjrSkEl6';
+const {createClient}=supabase;
+const db=createClient(SURL,SKEY);
+
+let CU=null,CUN='';
+let jDate=new Date().toISOString().split('T')[0];
+const TODAY=new Date().toISOString().split('T')[0];
+let pendingMeals=[];
+let selMood=null,selSleepQ=null,selZones=[];
+let leftEditDate=null;
+const REACTIONS=[{k:'heart',e:'❤️'},{k:'cry',e:'😢'},{k:'hug',e:'🤗'},{k:'fire',e:'🔥'},{k:'clap',e:'👏'}];
+
+// ── AUTH ──
+async function init(){
+  const {data:{session}}=await db.auth.getSession();
+  const hash=window.location.hash;
+  if(hash.includes('type=recovery')){showAuthScreen('newpass');return;}
+  if(session){CU=session.user;await afterLogin();}
+  db.auth.onAuthStateChange(async(ev,sess)=>{
+    if(ev==='PASSWORD_RECOVERY'){showAuthScreen('newpass');}
+    else if(ev==='SIGNED_IN'&&sess&&!CU){CU=sess.user;await afterLogin();}
+  });
+}
+function showAuthScreen(form){
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  switchAuth(form);
+}
+function switchAuth(m){
+  ['login','signup','reset','newpass'].forEach(x=>{const el=document.getElementById(x+'-form');if(el)el.style.display=x===m?'block':'none';});
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(m==='login'&&i===0)||(m==='signup'&&i===1)));
+  document.getElementById('auth-msg').textContent='';
+}
+async function doGoogle(){const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});if(error)setMsg(error.message,'error');}
+async function doLogin(){
+  const e=document.getElementById('login-email').value.trim(),p=document.getElementById('login-pass').value;
+  setMsg('Signing in…','');
+  const {data,error}=await db.auth.signInWithPassword({email:e,password:p});
+  if(error){setMsg(error.message,'error');return;}
+  CU=data.user;await afterLogin();
+}
+async function doSignup(){
+  const n=document.getElementById('signup-name').value.trim(),e=document.getElementById('signup-email').value.trim(),p=document.getElementById('signup-pass').value;
+  if(!n){setMsg('Please enter a username.','error');return;}
+  setMsg('Creating account…','');
+  const {data,error}=await db.auth.signUp({email:e,password:p});
+  if(error){setMsg(error.message,'error');return;}
+  CU=data.user;await db.from('profiles').upsert({id:CU.id,username:n});CUN=n;await afterLogin();
+}
+async function doReset(){
+  const e=document.getElementById('reset-email').value.trim();
+  if(!e){setMsg('Please enter your email.','error');return;}
+  setMsg('Sending…','');
+  const {error}=await db.auth.resetPasswordForEmail(e,{redirectTo:window.location.href});
+  if(error){setMsg(error.message,'error');return;}
+  setMsg('Reset link sent! Check your inbox.','success');
+}
+async function doSetNewPassword(){
+  const p1=document.getElementById('newpass1').value,p2=document.getElementById('newpass2').value;
+  if(!p1||p1.length<6){setMsg('Password must be at least 6 characters.','error');return;}
+  if(p1!==p2){setMsg('Passwords do not match.','error');return;}
+  setMsg('Updating…','');
+  const {error}=await db.auth.updateUser({password:p1});
+  if(error){setMsg(error.message,'error');return;}
+  setMsg('Password updated! Signing you in…','success');
+  setTimeout(async()=>{const {data:{session}}=await db.auth.getSession();if(session){CU=session.user;await afterLogin();}},1200);
+}
+async function afterLogin(){
+  if(!CUN){const {data}=await db.from('profiles').select('username').eq('id',CU.id).single();CUN=data?.username||CU.email?.split('@')[0]||'Friend';if(!data?.username)await db.from('profiles').upsert({id:CU.id,username:CUN});}
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('nav-username').textContent=CUN;
+  initDots();updateJDateDisplay();await loadJournalEntry();renderResources('all');loadPosts();
+}
+async function doSignout(){await db.auth.signOut();location.reload();}
+function setMsg(m,t){const el=document.getElementById('auth-msg');el.textContent=m;el.className='auth-msg'+(t?' '+t:'');}
+
+// ── ACCOUNT ──
+async function loadAccount(){
+  document.getElementById('acc-email').value=CU.email||'';
+  document.getElementById('acc-username').value=CUN||'';
+}
+async function saveProfile(){
+  const name=document.getElementById('acc-username').value.trim();
+  const msg=document.getElementById('profile-msg');
+  if(!name){msg.textContent='Please enter a username.';msg.style.color='var(--danger)';return;}
+  const {error}=await db.from('profiles').upsert({id:CU.id,username:name});
+  if(error){msg.textContent=error.message;msg.style.color='var(--danger)';return;}
+  CUN=name;document.getElementById('nav-username').textContent=CUN;
+  msg.textContent='Profile saved!';msg.style.color='var(--sage-mid)';
+  setTimeout(()=>msg.textContent='',3000);
+}
+async function changePassword(){
+  const p1=document.getElementById('acc-pass1').value,p2=document.getElementById('acc-pass2').value;
+  const msg=document.getElementById('pass-msg');
+  if(!p1||p1.length<6){msg.textContent='Password must be at least 6 characters.';msg.style.color='var(--danger)';return;}
+  if(p1!==p2){msg.textContent='Passwords do not match.';msg.style.color='var(--danger)';return;}
+  msg.textContent='Updating…';msg.style.color='var(--bark-light)';
+  const {error}=await db.auth.updateUser({password:p1});
+  if(error){msg.textContent=error.message;msg.style.color='var(--danger)';return;}
+  document.getElementById('acc-pass1').value='';document.getElementById('acc-pass2').value='';
+  msg.textContent='Password updated successfully!';msg.style.color='var(--sage-mid)';
+  setTimeout(()=>msg.textContent='',4000);
+}
+
+// ── TABS ──
+function showTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.section').forEach((s,j)=>s.classList.toggle('active',j===i));
+  if(i===3&&CU)loadAccount();
+}
+
+// ── MODALS ──
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ── DOTS (symptom 1-10) ──
+function initDots(){
+  ['itch','stomach','flare'].forEach(k=>{
+    const wrap=document.getElementById('d-'+k);
+    wrap.innerHTML='';
+    for(let i=1;i<=10;i++){
+      const d=document.createElement('div');
+      d.className='sdot';d.dataset.val=i;d.dataset.key=k;
+      d.onclick=()=>setSymptom(k,i);
+      wrap.appendChild(d);
+    }
+  });
+}
+function setSymptom(key,val){
+  document.querySelectorAll(`#d-${key} .sdot`).forEach(d=>{d.classList.toggle('on',parseInt(d.dataset.val)<=val);});
+  document.getElementById('v-'+key).textContent=val;
+}
+function getSymptom(key){
+  return parseInt(document.getElementById('v-'+key).textContent)||5;
+}
+function loadSymptoms(itch,stomach,flare){
+  setSymptom('itch',itch||5);setSymptom('stomach',stomach||5);setSymptom('flare',flare||5);
+}
+
+// ── MOOD ──
+function pickMood(btn){
+  document.querySelectorAll('.mc').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');selMood=parseInt(btn.dataset.val);
+  document.getElementById('mood-label').textContent=selMood+'/10 — '+btn.dataset.label;
+}
+
+// ── SLEEP QUALITY ──
+function pickSleepQ(btn){
+  document.querySelectorAll('.sq').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');selSleepQ=parseInt(btn.dataset.val);
+}
+
+// ── BODY MAP ──
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('body-zone')){
+    e.target.classList.toggle('sel-zone');
+    const z=e.target.dataset.zone;
+    if(e.target.classList.contains('sel-zone')){
+      e.target.style.fill='rgba(184,84,37,.45)';e.target.style.stroke='#B85425';
+      if(!selZones.includes(z))selZones.push(z);
+    } else {
+      e.target.style.fill='rgba(139,90,30,.08)';e.target.style.stroke='#C4AA80';
+      selZones=selZones.filter(x=>x!==z);
+    }
+    updateZoneLegend();
+  }
+});
+function updateZoneLegend(){
+  const el=document.getElementById('zone-list');
+  if(!selZones.length){el.innerHTML='<div class="zone-ph">Tap body areas to mark flares</div>';return;}
+  el.innerHTML=selZones.map(z=>`<div class="zone-item">${z}</div>`).join('');
+}
+function clearZones(){
+  selZones=[];
+  document.querySelectorAll('.body-zone').forEach(z=>{z.classList.remove('sel-zone');z.style.fill='rgba(139,90,30,.08)';z.style.stroke='#C4AA80';});
+  updateZoneLegend();
+}
+function loadZones(zones){
+  clearZones();
+  zones.forEach(z=>{
+    const el=document.querySelector(`.body-zone[data-zone="${z}"]`);
+    if(el){el.classList.add('sel-zone');el.style.fill='rgba(184,84,37,.45)';el.style.stroke='#B85425';selZones.push(z);}
+  });
+  updateZoneLegend();
+}
+
+// ── DATE NAV ──
+function updateJDateDisplay(){
+  const d=new Date(jDate+'T12:00:00');
+  document.getElementById('j-date-display').textContent=d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('date-input').value=jDate;
+  document.getElementById('j-next').disabled=jDate>=TODAY;
+  const min=new Date();min.setFullYear(min.getFullYear()-1);
+  document.getElementById('date-input').min=min.toISOString().split('T')[0];
+  document.getElementById('date-input').max=TODAY;
+  // right tag
+  const tag=document.getElementById('right-tag');
+  const rightDate=document.getElementById('right-date');
+  const rd=new Date(jDate+'T12:00:00');
+  rightDate.textContent=rd.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+  tag.textContent=jDate===TODAY?'Today':'';
+  tag.className='pg-tag'+(jDate===TODAY?' today-tag':'');
+  document.getElementById('right-pgnum').textContent=dayNumber(jDate);
+}
+function dayNumber(ds){const d=new Date(ds+'T12:00:00');const start=new Date(d.getFullYear(),0,0);return Math.floor((d-start)/86400000);}
+function toggleDatePopup(){document.getElementById('date-popup').classList.toggle('open');}
+document.addEventListener('click',e=>{
+  const p=document.getElementById('date-popup');const d=document.getElementById('j-date-display');
+  if(p&&!p.contains(e.target)&&e.target!==d)p.classList.remove('open');
+});
+async function jGoPrev(){
+  const d=new Date(jDate+'T12:00:00');d.setDate(d.getDate()-1);
+  const min=new Date();min.setFullYear(min.getFullYear()-1);
+  if(d<min)return;
+  jDate=d.toISOString().split('T')[0];updateJDateDisplay();await loadJournalEntry();
+}
+async function jGoNext(){
+  if(jDate>=TODAY)return;
+  const d=new Date(jDate+'T12:00:00');d.setDate(d.getDate()+1);
+  jDate=d.toISOString().split('T')[0];updateJDateDisplay();await loadJournalEntry();
+}
+async function jGoDate(v){if(!v)return;jDate=v;document.getElementById('date-popup').classList.remove('open');updateJDateDisplay();await loadJournalEntry();}
+
+// ── LEFT PAGE RENDER ──
+function renderLeftPage(date,meals,skin){
+  const d=new Date(date+'T12:00:00');
+  document.getElementById('left-date').textContent=d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById('left-pgnum').textContent=dayNumber(date);
+  leftEditDate=date;
+  if(!meals&&!skin){document.getElementById('left-content').innerHTML='<div style="font-family:Kalam,cursive;font-size:13px;color:#B09870;font-style:italic;padding:8px 0;">No entry for this day.</div>';return;}
+  const mealRows=(meals||[]).filter(m=>m.meal_type!=='Daily Check-in').map(m=>{
+    const als=m.inflammation?m.inflammation.split('|').filter(Boolean):[];
+    return `<div class="meal-line"><div class="mbullet old"></div><div class="mtext old">${m.foods}${als.map(a=>`<span class="mal">${a}</span>`).join('')}</div></div>`;
+  }).join('');
+  const ci=(meals||[]).find(m=>m.meal_type==='Daily Check-in');
+  const itchV=skin?skin.itchiness_level:0,stomachV=skin?skin.redness_level:0,flareV=skin?skin.dryness_level:0;
+  function miniDots(val){return Array.from({length:10},(_,i)=>`<div class="sdot sm${i<val?' on':''}" style="pointer-events:none;"></div>`).join('');}
+  const zones=skin&&skin.notes?skin.notes.split('|').filter(Boolean):[];
+  const sleepData=ci&&ci.digestion?JSON.parse(ci.digestion):null;
+  const sleepHtml=sleepData?`
+    <div class="j-sec">
+      <div class="j-lbl left-lbl">Sleep</div>
+      <div class="sleep-grid two" style="margin-bottom:6px;">
+        <div class="sleep-item"><div class="sleep-item-label">Hours</div><div class="sleep-item-val">${sleepData.hours||'—'}</div></div>
+        <div class="sleep-item"><div class="sleep-item-label">Woke up</div><div class="sleep-item-val">${sleepData.woke||'—'}</div></div>
+      </div>
+    </div>`:'';
+  document.getElementById('left-content').innerHTML=`
+    ${mealRows?`<div class="j-sec"><div class="j-lbl left-lbl">Meals</div>${mealRows}</div>`:''}
+    <div class="j-sec">
+      <div class="j-lbl left-lbl">Symptoms</div>
+      <div class="sym-row"><div class="sym-name sm">Itchiness</div><div class="sym-dots">${miniDots(itchV)}</div><div class="sym-val sm">${itchV}</div></div>
+      <div class="sym-row"><div class="sym-name sm">Stomach</div><div class="sym-dots">${miniDots(stomachV)}</div><div class="sym-val sm">${stomachV}</div></div>
+      <div class="sym-row"><div class="sym-name sm">Flares</div><div class="sym-dots">${miniDots(flareV)}</div><div class="sym-val sm">${flareV}</div></div>
+    </div>
+    ${sleepHtml}
+    ${ci&&ci.mood?`<div class="j-sec"><div class="j-lbl left-lbl">Mood</div><div style="font-family:Kalam,cursive;font-size:18px;">${moodEmoji(parseInt(ci.mood))}</div><div style="font-family:Kalam,cursive;font-size:12px;color:#9A7840;">${ci.mood}/10</div></div>`:''}
+    ${zones.length?`<div class="j-sec"><div class="j-lbl left-lbl">Flare areas</div><div class="zone-list">${zones.map(z=>`<div class="zone-item">${z}</div>`).join('')}</div></div>`:''}
+    ${ci&&ci.bowel?`<div class="j-sec"><div class="j-lbl left-lbl">Notes</div><div class="note-text old">${ci.bowel}</div></div>`:''}
+  `;
+}
+function moodEmoji(v){const em=['😭','😢','😔','😟','😐','🙂','😊','😄','😁','🤩'];return em[Math.min(v-1,9)]||'😐';}
+
+// ── LEFT EDIT ──
+function openLeftEdit(){
+  document.getElementById('left-edit-title').textContent='Edit '+new Date(leftEditDate+'T12:00:00').toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+  openModal('left-edit-modal');
+}
+async function saveLeftEdit(){
+  const s=leftEditDate+'T00:00:00',e=leftEditDate+'T23:59:59';
+  const {data:existing}=await db.from('meals').select('*').eq('user_id',CU.id).eq('meal_type','Daily Check-in').gte('logged_at',s).lte('logged_at',e).limit(1);
+  const sleepData=JSON.stringify({hours:document.getElementById('left-edit-sleep-hours').value.trim(),woke:document.getElementById('left-edit-sleep-woke').value.trim(),scratch:document.getElementById('left-edit-sleep-scratch').value.trim()});
+  const notes=document.getElementById('left-edit-notes').value.trim();
+  const ts=new Date(leftEditDate+'T12:00:00').toISOString();
+  if(existing&&existing.length){
+    await db.from('meals').update({bowel:notes||existing[0].bowel,digestion:sleepData}).eq('id',existing[0].id);
+  } else {
+    await db.from('meals').insert({user_id:CU.id,meal_type:'Daily Check-in',foods:'Check-in',bowel:notes||null,digestion:sleepData,logged_at:ts});
+  }
+  closeModal('left-edit-modal');toast('Entry updated!');await loadJournalEntry();
+}
+
+// ── JOURNAL LOAD ──
+async function loadJournalEntry(){
+  pendingMeals=[];selMood=null;selSleepQ=null;selZones=[];
+  document.getElementById('mood-label').textContent='';
+  document.querySelectorAll('.mc').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('.sq').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('j-notes').value='';
+  document.getElementById('sl-hours').value='';
+  document.getElementById('sl-woke').value='';
+  document.getElementById('sl-scratch').value='';
+  loadSymptoms(5,5,5);clearZones();
+
+  // load left page (previous day)
+  const prevDate=new Date(jDate+'T12:00:00');prevDate.setDate(prevDate.getDate()-1);
+  const prevStr=prevDate.toISOString().split('T')[0];
+  const ps=prevStr+'T00:00:00',pe=prevStr+'T23:59:59';
+  const [{data:prevMeals},{data:prevSkin}]=await Promise.all([
+    db.from('meals').select('*').eq('user_id',CU.id).gte('logged_at',ps).lte('logged_at',pe).order('logged_at'),
+    db.from('skin_entries').select('*').eq('user_id',CU.id).gte('logged_at',ps).lte('logged_at',pe).order('logged_at',{ascending:false}).limit(1)
+  ]);
+  renderLeftPage(prevStr,prevMeals,prevSkin?.[0]);
+
+  // load right page (selected day)
+  const s=jDate+'T00:00:00',e=jDate+'T23:59:59';
+  const [{data:meals},{data:skin}]=await Promise.all([
+    db.from('meals').select('*').eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e).order('logged_at'),
+    db.from('skin_entries').select('*').eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e).order('logged_at',{ascending:false}).limit(1)
+  ]);
+  if(meals){
+    const ci=meals.find(m=>m.meal_type==='Daily Check-in');
+    pendingMeals=meals.filter(m=>m.meal_type!=='Daily Check-in').map(m=>({id:m.id,type:m.meal_type,foods:m.foods,allergens:m.inflammation?m.inflammation.split('|').filter(Boolean):[]}));
+    if(ci){
+      if(ci.mood){selMood=parseInt(ci.mood);const b=document.querySelector(`.mc[data-val="${selMood}"]`);if(b){b.classList.add('sel');document.getElementById('mood-label').textContent=selMood+'/10 — '+b.dataset.label;}}
+      if(ci.bowel)document.getElementById('j-notes').value=ci.bowel;
+      if(ci.digestion){try{const sl=JSON.parse(ci.digestion);document.getElementById('sl-hours').value=sl.hours||'';document.getElementById('sl-woke').value=sl.woke||'';document.getElementById('sl-scratch').value=sl.scratch||'';if(sl.quality){selSleepQ=sl.quality;const sq=document.querySelector(`.sq[data-val="${sl.quality}"]`);if(sq)sq.classList.add('sel');}}catch(e){}}
+    }
+  }
+  if(skin&&skin[0]){
+    const sk=skin[0];
+    loadSymptoms(sk.itchiness_level,sk.redness_level,sk.dryness_level);
+    if(sk.notes)loadZones(sk.notes.split('|').filter(Boolean));
+  }
+  renderRMeals();
+}
+
+// ── MEALS ──
+function renderRMeals(){
+  const el=document.getElementById('r-meal-list');
+  if(!pendingMeals.length){el.innerHTML='';return;}
+  el.innerHTML=pendingMeals.map((m,i)=>`
+    <div class="meal-line">
+      <div class="mbullet"></div>
+      <div class="mtext">${m.foods}${m.allergens.map(a=>`<span class="mal">${a}</span>`).join('')}</div>
+      <span style="font-size:10px;color:#B09870;font-family:'Kalam',cursive;cursor:pointer;margin-left:4px;" onclick="delMeal(${i})">✕</span>
+    </div>`).join('');
+}
+function delMeal(i){pendingMeals.splice(i,1);renderRMeals();}
+function addMeal(){
+  const foods=document.getElementById('m-foods').value.trim();
+  if(!foods){toast('Please enter what you ate.');return;}
+  const allergens=[...document.querySelectorAll('#meal-modal .al-btn.sel')].map(b=>b.textContent.trim());
+  pendingMeals.push({type:document.getElementById('m-type').value,foods,allergens});
+  renderRMeals();closeModal('meal-modal');
+  document.getElementById('m-foods').value='';
+  document.querySelectorAll('#meal-modal .al-btn').forEach(b=>b.classList.remove('sel'));
+  toast('Meal added!');
+}
+
+// ── SAVE ──
+async function saveJournalEntry(){
+  const ts=new Date(jDate+'T12:00:00').toISOString();
+  const s=jDate+'T00:00:00',e=jDate+'T23:59:59';
+  await Promise.all([
+    db.from('meals').delete().eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e),
+    db.from('skin_entries').delete().eq('user_id',CU.id).gte('logged_at',s).lte('logged_at',e)
+  ]);
+  if(pendingMeals.length)await db.from('meals').insert(pendingMeals.map(m=>({user_id:CU.id,meal_type:m.type,foods:m.foods,inflammation:m.allergens.join('|'),logged_at:ts})));
+  const sleepData=JSON.stringify({hours:document.getElementById('sl-hours').value.trim(),woke:document.getElementById('sl-woke').value.trim(),scratch:document.getElementById('sl-scratch').value.trim(),quality:selSleepQ});
+  await db.from('meals').insert({user_id:CU.id,meal_type:'Daily Check-in',foods:'Check-in',mood:selMood?String(selMood):null,bowel:document.getElementById('j-notes').value.trim()||null,digestion:sleepData,logged_at:ts});
+  await db.from('skin_entries').insert({user_id:CU.id,itchiness_level:getSymptom('itch'),redness_level:getSymptom('stomach'),dryness_level:getSymptom('flare'),notes:selZones.join('|')||null,logged_at:ts});
+  toast('Entry saved! 🌿');await loadJournalEntry();
+}
+
+// ── RESOURCES ──
+const resources=[
+  {cat:'sleep',title:'Improving sleep during a flare',desc:'Practical strategies to manage nighttime itch and improve sleep quality even when your eczema is at its worst.',url:'https://nationaleczema.org/blog/good-night-how-to-improve-your-sleep-even-when-your-eczema-is-flaring/'},
+  {cat:'treatment',title:'Complementary & alternative therapies',desc:'A balanced look at natural remedies, what the evidence says, and how to talk to your doctor about them.',url:'https://nationaleczema.org/blog/eczema-treatment-naturally-a-look-at-complementary-and-alternative-therapies/'},
+  {cat:'treatment',title:'Eczema myth-busting',desc:'Clearing up the most common misinformation and unfounded concerns about eczema causes and treatments.',url:'https://nationaleczema.org/blog/eczema-mythbusting-misinformation-and-unfounded-concerns/'},
+  {cat:'treatment',title:'New treatment options',desc:'How recent advances in biologics, JAK inhibitors, and other therapies are changing what\'s possible for patients.',url:'https://nationaleczema.org/blog/how-new-treatment-options-are-impacting-eczema-care/'},
+  {cat:'skincare',title:'Bathing & moisturizing guide',desc:'The right way to bathe, what products to use, and how to lock in moisture immediately after.',url:'https://nationaleczema.org/treatments/bathing/'},
+  {cat:'mental',title:'Podcast: mental health is health',desc:'A candid conversation about the emotional toll of chronic skin disease and why mental health care matters.',url:'https://nationaleczema.org/blog/podcast-mental-health-is-health/'},
+  {cat:'diet',title:'Diet & nutrition for eczema',desc:'What the research says about food triggers, anti-inflammatory eating, and how to approach an elimination diet safely.',url:'https://nationaleczema.org/eczema-management/diet-nutrition/'},
+  {cat:'skincare',title:'NEA accepted product directory',desc:'Search and browse products that have earned the NEA Seal of Acceptance — fragrance-free and clinically reviewed.',url:'https://nationaleczema.org/eczema-products/'},
+  {cat:'makeup',title:'How I do my makeup with eczema',desc:'Real tips — what to look for, what to avoid, and how to prep your skin before applying anything.',url:'https://nationaleczema.org/blog/heres-how-i-do-my-makeup-with-eczema/'},
+  {cat:'skincare',title:'Wet wrap therapy',desc:'Step-by-step instructions for wet wrapping — one of the most effective short-term treatments for severe flares.',url:'https://nationaleczema.org/treatments/wet-wrap-therapy/'},
+  {cat:'clothing',title:'Clothing & eczema triggers',desc:'Which fabrics to wear and avoid, how to manage heat and friction, and dressing strategies for sensitive skin.',url:'https://eczema.org/information-and-advice/triggers-for-eczema/clothing-and-eczema/'},
+];
+const catC={sleep:'badge-blue',treatment:'badge-terra',mental:'badge-pink',diet:'badge-sage',skincare:'badge-terra',makeup:'badge-pink',clothing:'badge-blue'};
+const catN={sleep:'Sleep',treatment:'Treatment',mental:'Mental health',diet:'Diet',skincare:'Skincare',makeup:'Makeup',clothing:'Clothing'};
+const recipes=[
+  {title:'Golden Turmeric Salmon Bowl',time:'25 min',tags:['Gluten-free','Dairy-free'],desc:'Rich in omega-3s and curcumin.',ingredients:['2 salmon fillets','1 tsp turmeric','1 tsp olive oil','1 cup quinoa','1 cup spinach','½ avocado','1 tbsp lemon juice'],steps:['Rub salmon with turmeric, oil, salt, pepper.','Pan-sear 4 min each side.','Arrange quinoa and spinach in bowl. Top with salmon and avocado.','Drizzle with lemon juice.']},
+  {title:'Sweet Potato & Ginger Soup',time:'35 min',tags:['Vegan','Gluten-free'],desc:'Gentle on the gut, rich in beta-carotene.',ingredients:['3 sweet potatoes, cubed','1 tbsp ginger, grated','1 can coconut milk','3 cups vegetable broth','1 onion','2 garlic cloves','1 tbsp coconut oil'],steps:['Sauté onion and garlic 5 min.','Add sweet potato, ginger, broth. Simmer 20 min.','Blend until smooth.','Stir in coconut milk, season, serve.']},
+  {title:'Blueberry Chia Overnight Oats',time:'5 min + overnight',tags:['Dairy-free','High fibre'],desc:'Antioxidants and omega-3s in one bowl.',ingredients:['½ cup rolled oats','1 tbsp chia seeds','1 cup oat milk','½ cup blueberries','1 tsp maple syrup'],steps:['Mix oats, chia, milk, maple syrup in a jar.','Top with blueberries.','Refrigerate overnight.','Stir before eating.']},
+  {title:'Cucumber Avocado Rice Bowl',time:'15 min',tags:['Vegan','Nut-free'],desc:'Cooling, easy on digestion, vitamin E.',ingredients:['1 cup brown rice','½ avocado','½ cucumber','¼ cup edamame','1 tbsp rice vinegar','1 tsp sesame oil'],steps:['Cook rice, let cool.','Arrange in bowl with avocado, cucumber, edamame.','Drizzle with rice vinegar and sesame oil.','Sprinkle sesame seeds.']},
+  {title:'Lemon Herb Baked Chicken',time:'40 min',tags:['Gluten-free','Dairy-free'],desc:'Simple protein with anti-inflammatory herbs.',ingredients:['4 chicken thighs','2 tbsp olive oil','1 lemon, juiced','3 garlic cloves, minced','1 tsp rosemary','1 tsp thyme'],steps:['Preheat oven 400°F.','Mix oil, lemon, garlic, herbs. Coat chicken.','Bake 35–40 min.']},
+  {title:'Green Flaxseed Smoothie',time:'5 min',tags:['Vegan','Quick'],desc:'Best plant source of omega-3 ALA.',ingredients:['1 cup spinach','1 frozen banana','1 cup oat milk','1 tbsp ground flaxseed','½ cup mango'],steps:['Add all to blender.','Blend 60 seconds.','Drink immediately.']},
+];
+function renderResources(cat){
+  const c=document.getElementById('res-container');
+  if(cat==='recipes'){
+    c.innerHTML=`<div class="recipe-grid">${recipes.map(r=>`<div class="recipe-card"><h4>${r.title}</h4><div class="recipe-meta">⏱ ${r.time}</div><div class="recipe-tags">${r.tags.map(t=>`<span class="badge badge-sage" style="font-size:10px;">${t}</span>`).join('')}</div><p style="font-size:12px;color:var(--bark-light);line-height:1.5;margin-bottom:8px;">${r.desc}</p><div class="recipe-step-label">Ingredients</div><ul>${r.ingredients.map(i=>`<li>${i}</li>`).join('')}</ul><div class="recipe-step-label">Method</div><ol>${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>`).join('')}</div>`;
+    return;
+  }
+  const list=cat==='all'?resources:resources.filter(r=>r.cat===cat);
+  c.innerHTML=`<div class="res-grid">${list.map(r=>`<div class="res-card"><span class="badge ${catC[r.cat]||'badge-sand'}" style="font-size:10px;">${catN[r.cat]||r.cat}</span><h4>${r.title}</h4><p>${r.desc}</p><a class="res-link" href="${r.url}" target="_blank" rel="noopener">Read article →</a></div>`).join('')}</div>`;
+}
+function filterRes(chip,cat){document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');renderResources(cat);}
+
+// ── FORUM ──
+async function loadPosts(topic){
+  const el=document.getElementById('thread-list');el.innerHTML='<div class="loading">Loading…</div>';
+  let q=db.from('posts').select('*').order('created_at',{ascending:false});
+  if(topic)q=q.eq('topic',topic);
+  const {data}=await q;renderPosts(data||[]);
+}
+function renderPosts(posts){
+  const el=document.getElementById('thread-list');
+  if(!posts.length){el.innerHTML='<div class="empty">No threads yet. Be the first to post!</div>';return;}
+  const avC=['background:var(--terra-pale);color:var(--terra);','background:var(--sage-pale);color:var(--sage-mid);','background:#E8EAF6;color:#3949AB;','background:#FCE4EC;color:#C2185B;','background:var(--oat);color:var(--bark-mid);'];
+  el.innerHTML=posts.map((p,i)=>{
+    const own=CU&&p.user_id===CU.id;
+    const rxn=REACTIONS.map(r=>`<button class="reaction-btn" onclick="react('${p.id}','${r.k}',this)">${r.e} <span class="reaction-count" id="rc-${p.id}-${r.k}">0</span></button>`).join('');
+    return `<div class="thread-card" id="th-${p.id}">
+      <div class="thread-top">
+        <div class="avatar" style="${avC[i%avC.length]}">${(p.username||'U').substring(0,2).toUpperCase()}</div>
+        <div style="flex:1;"><div class="thread-author">${p.username||'Anonymous'}</div><div class="thread-time">${ago(p.created_at)}</div></div>
+        ${own?`<div class="own-actions"><button class="own-btn edit-btn" onclick="openEditPost('${p.id}','${esc(p.topic)}','${esc(p.title)}','${esc(p.body)}')">Edit</button><button class="own-btn del-btn" onclick="delPost('${p.id}')">Delete</button></div>`:''}
+      </div>
+      <h4>${p.title}</h4>
+      <p>${p.body.substring(0,200)}${p.body.length>200?'…':''}</p>
+      <div class="reaction-bar">${rxn}</div>
+      <div class="thread-footer">
+        <span class="badge badge-terra">${p.topic||'General'}</span>
+        <span class="thread-stat" onclick="toggleReplies('${p.id}',this)">💬 View replies</span>
+      </div>
+      <div class="replies-section" id="rep-${p.id}">
+        <div id="rep-body-${p.id}"></div>
+        <div class="reply-form"><textarea id="rep-in-${p.id}" placeholder="Write a reply…"></textarea><button class="btn-primary" onclick="saveReply('${p.id}')">Reply</button></div>
+      </div>
+    </div>`;
+  }).join('');
+  posts.forEach(p=>loadRxn(p.id));
+}
+function esc(s){return (s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');}
+function openPostModal(){document.getElementById('edit-post-id').value='';document.getElementById('post-modal-title').textContent='Start a new thread';document.getElementById('post-title').value='';document.getElementById('post-body').value='';openModal('post-modal');}
+function openEditPost(id,topic,title,body){document.getElementById('edit-post-id').value=id;document.getElementById('post-modal-title').textContent='Edit thread';document.getElementById('post-topic').value=topic;document.getElementById('post-title').value=title;document.getElementById('post-body').value=body;openModal('post-modal');}
+async function delPost(id){if(!confirm('Delete this post?'))return;await db.from('replies').delete().eq('post_id',id);await db.from('posts').delete().eq('id',id).eq('user_id',CU.id);toast('Post deleted.');loadPosts();}
+async function savePost(){
+  const title=document.getElementById('post-title').value.trim(),body=document.getElementById('post-body').value.trim(),eid=document.getElementById('edit-post-id').value;
+  if(!title||!body){toast('Please fill in title and message.');return;}
+  if(eid){await db.from('posts').update({title,body,topic:document.getElementById('post-topic').value}).eq('id',eid).eq('user_id',CU.id);toast('Post updated!');}
+  else{await db.from('posts').insert({user_id:CU.id,username:CUN,title,body,topic:document.getElementById('post-topic').value});toast('Posted! 🌿');}
+  closeModal('post-modal');loadPosts();
+}
+async function react(pid,k,btn){
+  const {data:ex}=await db.from('replies').select('id').eq('post_id',pid).eq('user_id',CU.id).eq('body','__rxn__'+k).limit(1);
+  if(ex&&ex.length)await db.from('replies').delete().eq('id',ex[0].id);
+  else await db.from('replies').insert({post_id:pid,user_id:CU.id,username:CUN,body:'__rxn__'+k});
+  loadRxn(pid);
+}
+async function loadRxn(pid){
+  const {data}=await db.from('replies').select('body,user_id').eq('post_id',pid);
+  if(!data)return;
+  REACTIONS.forEach(r=>{
+    const n=data.filter(d=>d.body==='__rxn__'+r.k).length;
+    const el=document.getElementById(`rc-${pid}-${r.k}`);if(el)el.textContent=n;
+    const btn=el?.closest('.reaction-btn');if(btn)btn.classList.toggle('reacted',data.some(d=>d.body==='__rxn__'+r.k&&d.user_id===CU.id));
+  });
+}
+async function toggleReplies(pid,btn){
+  const s=document.getElementById('rep-'+pid);const open=s.style.display==='block';
+  s.style.display=open?'none':'block';btn.textContent=open?'💬 View replies':'💬 Hide replies';
+  if(!open)await loadReplies(pid);
+}
+async function loadReplies(pid){
+  const el=document.getElementById('rep-body-'+pid);
+  const {data}=await db.from('replies').select('*').eq('post_id',pid).order('created_at');
+  const real=(data||[]).filter(r=>!r.body.startsWith('__rxn__'));
+  if(!real.length){el.innerHTML='<p style="font-size:12px;color:var(--bark-light);padding:8px 0;">No replies yet — be the first!</p>';return;}
+  el.innerHTML=real.map(r=>`<div class="reply-item"><div class="avatar" style="background:var(--oat);color:var(--bark-mid);font-size:11px;width:28px;height:28px;flex-shrink:0;">${(r.username||'U').substring(0,2).toUpperCase()}</div><div class="reply-body"><div class="reply-meta"><strong>${r.username||'Anonymous'}</strong> · ${ago(r.created_at)}</div><div class="reply-text">${r.body}</div></div></div>`).join('');
+}
+async function saveReply(pid){
+  const inp=document.getElementById('rep-in-'+pid);const body=inp.value.trim();if(!body)return;
+  await db.from('replies').insert({post_id:pid,user_id:CU.id,username:CUN,body});
+  inp.value='';toast('Reply posted! 💬');await loadReplies(pid);
+}
+function ago(ts){const d=(Date.now()-new Date(ts).getTime())/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+' min ago';if(d<86400)return Math.floor(d/3600)+' hr ago';return Math.floor(d/86400)+' days ago';}
+
+init();
+</script>
+</body>
+</html>
